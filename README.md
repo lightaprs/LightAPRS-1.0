@@ -4,7 +4,7 @@ LightAPRS is one of the affordable, smallest, lightest, powerful and open source
 It is able to report location, altitude, temperature and pressure to the internet ([APRS-IS](http://status.aprs2.net)) or direct to an amateur radio once a minute with a solar panel/super capacitors or just 4xAAA batteries. 
 Because LightAPRS is open source you can add your own custom sensors via I2C/SPI pins.
 
-LightAPRS will be available on http://www.qrp-labs.com/lightaprs.html soon.
+LightAPRS is available on http://www.qrp-labs.com/lightaprs.html for order.
 
 <img src="images/lightaprs-pinout.jpg" width="600">
 
