@@ -27,7 +27,7 @@ LightAPRS is available on http://www.qrp-labs.com/lightaprs.html for order.
 - **BOD** : 2.7 Volt
 - **Sensor** : BMP180 (pressure and temperature)
 - **Radio Module** : [Dorji DRA818V](http://www.dorji.com/products-detail.php?ProId=55) (included)
-- **Radio Operating Frequency** : 134-174 Mhz (configurable by code)
+- **Radio Operating Frequency** : 144-146 Mhz (configurable by code)
 - **Low Pass Filter** : Available (7 elements)
 - **Radio Power**  : 0.5 Watt or 1 Watt (configurable by code)
 - **Power Consumption (Sleep)** : ~5 mA
