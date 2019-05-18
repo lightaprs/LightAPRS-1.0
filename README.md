@@ -116,8 +116,6 @@ A. You can use any type. For airborne projects (such as balloons, rockets, rc pl
 
 <img src="images/lightaprs-monopole-wire-antenna-connection.jpg" width="600">
 
-But if it's not airborn
-
 **Q. But I want to use rubber duck antenna. Is it possible?**
 
 A. Yes. But you need a pcb type SMA connector (male or female) as follows:
