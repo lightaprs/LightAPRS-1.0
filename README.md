@@ -107,3 +107,29 @@ You are almost ready to programme LightAPRS Tracker :)
 ## Support
 
 If you have any questions or need supoort, please contact support@lightaprs.com
+
+## FAQ
+
+**Q. What kind of antenna do i need to use on LightAPRS?**
+
+A. You can use any type. For airborne projects (such as balloons, rockets, rc planes, drones, etc.) we suggest quarter wave dipole antenna becuase this makes your payload lighter. So just cut a light 50 cm. wire and solder it to antenna footprint (A1) Since your payload is airborn and wavelenght is 2 meters, you don't need a wire for ground.
+
+<img src="images/lightaprs-monopole-wire-antenna-connection.jpg" width="600">
+
+But if it's not airborn
+
+**Q. But I want to use rubber duck antenna. Is it possible?**
+
+A. Yes. But you need a pcb type SMA connector (male or female) as follows:
+
+<img src="images/lightaprs-sma-antenna-connection.jpg" width="600">
+
+**Q. I would like to use it as a car tracker is it possible to use an external antenna?**
+
+A. Yes. But you also need a "n" type connector (n to SMA) along with the SMA connector as follows:
+
+<img src="images/sma-to-type-n-connector.jpg" width="600">
+
+We have tested it with Midland NW-2000 and worked fine :)
+
+<img src="images/lightaprs-external-antenna-connection.jpg" width="600">
