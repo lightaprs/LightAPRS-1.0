@@ -23,7 +23,7 @@ LightAPRS is available on http://www.qrp-labs.com/lightaprs.html for order.
 - **EEPROM** : 4 kB
 - **Operating Frequency** : 8 Mhz
 - **Operating Voltage** : 3.3 Volt
-- **Input Voltage** : 3.3 Volt (via 3.3V pin) or  4.5 (min) - 15 (max) Volt via usb or VBat pin
+- **Input Voltage** : 4.5 (min) - 15 (max) Volt for 0.5 Watt / 4.5 (min) - 10 (max) Volt for 1 Watt via usb or VBat pin
 - **BOD** : 2.7 Volt
 - **Sensor** : BMP180 (pressure and temperature)
 - **Radio Module** : [Dorji DRA818V](http://www.dorji.com/products-detail.php?ProId=55) (included)
@@ -31,7 +31,7 @@ LightAPRS is available on http://www.qrp-labs.com/lightaprs.html for order.
 - **Low Pass Filter** : Available (7 elements)
 - **Radio Power**  : 0.5 Watt or 1 Watt (configurable by code)
 - **Power Consumption (Sleep)** : ~5 mA
-- **Power Consumption (TX)** : ~460 mA (0.5 Watt) / ~760 mA (1 Watt)
+- **Power Consumption (TX)** : ~460 mA (0.5 Watt) / ~760 mA (1 Watt) (Automatically selected based on input voltage by code)
 - **GPS** : Ublox MAX-M8Q (GPS-GLONASS)
 - **GPS Antenna Gain** : 4.3 dBi
 - **Extended Pins** : I2C, SPI

@@ -46,7 +46,7 @@ char StatusMessage[50] = "LightAPRS by TA9OHC & TA2MUN";
 unsigned int   BeaconWait=60;  //seconds sleep for next beacon (TX).
 unsigned int   BattWait=60;    //seconds sleep if super capacitors/batteries are below BattMin (important if power source is solar panel) 
 float BattMin=4.5;        // min Volts to wake up.
-float DraHihgVolt=4.8;    // min Volts for radio module (DRA818V) to transmit (TX) 1 Watt, below this transmit 0.5 Watt.
+float DraHighVolt=8.0;    // max Volts for radio module (DRA818V) to transmit (TX) 1 Watt, above this transmit 0.5 Watt. Do not increase this value to avoid overheating.
 float GpsMinVolt=4.0; //min Volts for GPS to wake up. (important if power source is solar panel) 
 
 boolean aliveStatus = true; //for tx status message on first wake-up just once.
@@ -337,7 +337,7 @@ void sendLocation() {
 #if defined(DEVMODE)
       Serial.println(F("Location sending with comment"));
 #endif
-  if (readBatt() > DraHihgVolt) RfPwrHigh; //DRA Power 1 Watt
+  if (readBatt() < DraHighVolt) RfPwrHigh; //DRA Power 1 Watt
   else RfPwrLow; //DRA Power 0.5 Watt
 
   int hh = gps.time.hour();
@@ -371,8 +371,9 @@ void sendLocation() {
 }
 
 void sendStatus() {
-  if (readBatt() > DraHihgVolt) RfPwrHigh; //DRA Power 1 Watt
+  if (readBatt() < DraHighVolt) RfPwrHigh; //DRA Power 1 Watt
   else RfPwrLow; //DRA Power 0.5 Watt
+  
   AprsPinOutput;
   RfON;
   delay(2000);
