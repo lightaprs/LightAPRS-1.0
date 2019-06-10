@@ -112,7 +112,7 @@ If you have any questions or need supoort, please contact support@lightaprs.com
 
 **Q. What kind of antenna do i need to use on LightAPRS?**
 
-A. You can use any type. For airborne projects (such as balloons, rockets, rc planes, drones, etc.) we suggest quarter wave dipole antenna becuase this makes your payload lighter. So just cut a light 50 cm. wire and solder it to antenna footprint (A1) Since your payload is airborn and wavelenght is 2 meters, you don't need a wire for ground.
+A. You can use any type. For airborne projects (such as balloons, rockets, rc planes, drones, etc.) we suggest quarter wave monopole antenna becuase this makes your payload lighter. So just cut a light 50 cm. wire and solder it to antenna footprint (A1) Since your payload is airborn and wavelenght is 2 meters, you don't need a wire for ground.
 
 <img src="images/lightaprs-monopole-wire-antenna-connection.jpg" width="600">
 
