@@ -6,6 +6,7 @@
 #include <Adafruit_BMP085.h>//https://github.com/adafruit/Adafruit-BMP085-Library
 #include "GEOFENCE.h"       // Modified version of https://github.com/TomasTT7/TT7F-Float-Tracker/blob/master/Software/ARM_GEOFENCE.c
 #include <avr/wdt.h>
+#include <EEPROM.h>
 
 #define RfPDPin     19
 #define GpsVccPin   18
@@ -76,6 +77,14 @@ boolean GpsFirstFix=false;
 static char telemetry_buff[100];// telemetry buffer
 uint16_t TxCount = 1;
 
+struct Date 
+{ 
+    int d, m, y; 
+}; 
+
+const int monthDays[12] = {31, 28, 31, 30, 31, 30, 
+                           31, 31, 30, 31, 30, 31}; 
+
 TinyGPSPlus gps;
 Adafruit_BMP085 bmp;
 
@@ -93,7 +102,6 @@ void setup() {
   GpsOFF;
   RfPwrLow;
   RfPttOFF;
-  AprsPinInput;
 
   Serial.begin(57600);
   Serial1.begin(9600);
@@ -110,7 +118,8 @@ void setup() {
   APRS_useAlternateSymbolTable(alternateSymbolTable); 
   APRS_setSymbol(Symbol);
   APRS_setPathSize(pathSize);
-
+  AprsPinInput;
+  
   bmp.begin();
 }
 
@@ -160,7 +169,7 @@ void loop() {
             //force to use high altitude settings (WIDE2-n)
             APRS_setPathSize(1);
         } else {
-            //use defualt settings  
+            //use default settings  
             APRS_setPathSize(pathSize);
         }
       
@@ -416,7 +425,7 @@ void sendLocation() {
   sprintf(timestamp_buff + 2, "%02d", gps.time.isValid() ? (int)gps.time.minute() : 0);
   sprintf(timestamp_buff + 4, "%02d", gps.time.isValid() ? (int)gps.time.second() : 0);
   timestamp_buff[6] = 'h';
-
+  AprsPinOutput;
   RfON;
   delay(2000);
   RfPttON;
@@ -424,11 +433,12 @@ void sendLocation() {
   
   //APRS_sendLoc(telemetry_buff, strlen(telemetry_buff)); //beacon without timestamp
   APRS_sendLocWtTmStmp(telemetry_buff, strlen(telemetry_buff), timestamp_buff); //beacon with timestamp
-  
+  delay(50);
   while(digitalRead(1)){;}//LibAprs TX Led pin PB1
   delay(50);
   RfPttOFF;
   RfOFF;
+  AprsPinInput;
 #if defined(DEVMODE)
   Serial.println(F("Location sent with comment"));
 #endif
@@ -440,17 +450,63 @@ void sendStatus() {
   if ((readBatt() > DraHighVolt) && (readBatt() < 10)) RfPwrHigh; //DRA Power 1 Watt
   else RfPwrLow; //DRA Power 0.5 Watt
 
+  char status_buff[60];
+
+  int firstDayCheck = 0;
+  int difference = 0;
+
+  //start day counter if balloon launched
+  if(gps.satellites.isValid() && gps.satellites.value()>3 && gps.date.isValid() && gps.altitude.feet()>15000){
+
+    firstDayCheck = EEPROM.read(0);
+
+    Date today = {gps.date.day(), gps.date.month(), gps.date.year()};
+    
+    int firstDay = 0;
+    int firstMonth = 0;
+    int firstYear = 0;
+
+    if(firstDayCheck == 1){
+      firstDay = EEPROM.read(1);
+      firstMonth = EEPROM.read(2);
+      firstYear = EEPROM.read(3);
+
+      Date firstDate = {firstDay, firstMonth, firstYear+2000};    
+
+      difference = getDifference(firstDate,today);
+      char diffBuf[4];
+      sprintf(diffBuf,"%d",difference+1);
+
+      sprintf(status_buff, "%s%s%s%s", "Day ",diffBuf," ",StatusMessage);
+          
+    } else {
+      //write today's (first day) date
+      EEPROM.update(0, 1); //check
+      EEPROM.update(1, gps.date.day()); //day
+      EEPROM.update(2, gps.date.month()); //month
+      EEPROM.update(3, gps.date.year() % 2000); //year
+
+      sprintf(status_buff, "%s%s", "Day 1 ",StatusMessage);
+    }    
+    
+  } else {
+    
+    sprintf(status_buff, "%s", StatusMessage);
+  }
+  
+  AprsPinOutput;
   RfON;
   delay(2000);
   RfPttON;
   delay(1000);
     
-  APRS_sendStatus(StatusMessage, strlen(StatusMessage));
-
+  APRS_sendStatus(status_buff, strlen(status_buff));
+  delay(50);
   while(digitalRead(1)){;}//LibAprs TX Led pin PB1
   delay(50);
   RfPttOFF;
   RfOFF;
+  AprsPinInput;
 #if defined(DEVMODE)
   Serial.println(F("Status sent"));
 #endif
@@ -458,6 +514,46 @@ void sendStatus() {
   TxCount++;
 
 }
+
+int countLeapYears(Date d) 
+{ 
+    int years = d.y; 
+  
+    // Check if the current year needs to be considered 
+    // for the count of leap years or not 
+    if (d.m <= 2) 
+        years--; 
+  
+    // An year is a leap year if it is a multiple of 4, 
+    // multiple of 400 and not a multiple of 100. 
+    return years / 4 - years / 100 + years / 400; 
+} 
+  
+int getDifference(Date dt1, Date dt2) 
+{ 
+    // COUNT TOTAL NUMBER OF DAYS BEFORE FIRST DATE 'dt1' 
+  
+    // initialize count using years and day 
+    long int n1 = dt1.y*365 + dt1.d; 
+  
+    // Add days for months in given date 
+    for (int i=0; i<dt1.m - 1; i++) 
+        n1 += monthDays[i]; 
+  
+    // Since every leap year is of 366 days, 
+    // Add a day for every leap year 
+    n1 += countLeapYears(dt1); 
+  
+    // SIMILARLY, COUNT TOTAL NUMBER OF DAYS BEFORE 'dt2' 
+  
+    long int n2 = dt2.y*365 + dt2.d; 
+    for (int i=0; i<dt2.m - 1; i++) 
+        n2 += monthDays[i]; 
+    n2 += countLeapYears(dt2); 
+  
+    // return difference between two counts 
+    return (n2 - n1); 
+} 
 
 
 static void updateGpsData(int ms)
