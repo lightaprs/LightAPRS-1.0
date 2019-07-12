@@ -32,6 +32,8 @@
 
 //#define DEVMODE // Development mode. Uncomment to enable for debugging.
 
+//https://github.com/lightaprs/LightAPRS-1.0/wiki/Tips-&-Tricks-for-Pico-Balloons
+
 //****************************************************************************
 char  CallSign[7]="NOCALL"; //DO NOT FORGET TO CHANGE YOUR CALLSIGN
 int   CallNumber=11; //SSID http://www.aprs.org/aprs11/SSIDs.txt
