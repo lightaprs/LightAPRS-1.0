@@ -299,7 +299,7 @@ void updateTelemetry() {
   telemetry_buff[7] = '/';
   telemetry_buff[8] = 'A';
   telemetry_buff[9] = '=';
-  sprintf(telemetry_buff + 10, "%06d", (long)gps.altitude.feet());
+  sprintf(telemetry_buff + 10, "%06lu", (long)gps.altitude.feet());
   telemetry_buff[16] = ' ';
   sprintf(telemetry_buff + 17, "%03d", TxCount);
   telemetry_buff[20] = 'T';
