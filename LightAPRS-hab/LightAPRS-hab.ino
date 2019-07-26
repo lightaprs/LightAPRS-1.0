@@ -46,8 +46,8 @@ char StatusMessage[50] = "LightAPRS by TA9OHC & TA2MUN";
 unsigned int   BeaconWait=60;  //seconds sleep for next beacon (TX).
 unsigned int   BattWait=60;    //seconds sleep if super capacitors/batteries are below BattMin (important if power source is solar panel) 
 float BattMin=4.5;        // min Volts to wake up.
-float DraHighVolt=4.8;    // min Volts for radio module (DRA818V) to transmit (TX) 1 Watt, below this transmit 0.5 Watt.
-float GpsMinVolt=4.0; //min Volts for GPS to wake up. (important if power source is solar panel) 
+float DraHighVolt=6.0;    // min Volts for radio module (DRA818V) to transmit (TX) 1 Watt, below this transmit 0.5 Watt.
+//float GpsMinVolt=4.0; //min Volts for GPS to wake up. (important if power source is solar panel) 
 
 boolean aliveStatus = true; //for tx status message on first wake-up just once.
 
@@ -64,7 +64,8 @@ NEVER use WIDE1-1 in an airborne path, since this can potentially trigger hundre
 int pathSize=2; // 2 for WIDE1-N,WIDE2-N ; 1 for WIDE2-N
 boolean autoPathSizeHighAlt = true; //force path to WIDE2-N only for high altitude (airborne) beaconing (over 1.000 meters (3.280 feet)) 
 
-boolean GpsFirstFix=false;
+//boolean GpsFirstFix=false;
+boolean ublox_high_alt_mode = false;
 
 static char telemetry_buff[100];// telemetry buffer
 uint16_t TxCount = 1;
@@ -107,7 +108,7 @@ void setup() {
   APRS_setPathSize(pathSize);
 
   configDra818(Frequency);
-  
+
   bmp.begin();
  
 }
@@ -116,7 +117,6 @@ void loop() {
    wdt_reset();
   
   if (readBatt() > BattMin) {
-  
   
   if(aliveStatus){
 
@@ -143,8 +143,9 @@ void loop() {
       updatePosition();
       updateTelemetry();
       
-      GpsOFF;
-      GpsFirstFix=true;
+      //GpsOFF;
+      setGPS_PowerSaveMode();
+      //GpsFirstFix=true;
 
       if(autoPathSizeHighAlt && gps.altitude.feet()>3000){
             //force to use high altitude settings (WIDE2-n)
@@ -186,13 +187,13 @@ void aprs_msg_callback(struct AX25Msg *msg) {
 }
 
 void sleepSeconds(int sec) {  
-  if(GpsFirstFix)GpsOFF;//sleep gps after first fix
+  //if(GpsFirstFix)GpsOFF;//sleep gps after first fix
   RfOFF;
   RfPttOFF;
   Serial.flush();
   wdt_disable();
   for (int i = 0; i < sec; i++) {
-    if(readBatt() < GpsMinVolt) GpsOFF;  //(for pico balloon only)
+    //if(readBatt() < GpsMinVolt) GpsOFF;  //(for pico balloon only)
     LowPower.powerDown(SLEEP_1S, ADC_OFF, BOD_ON);   
   }
    wdt_enable(WDTO_8S);
@@ -394,6 +395,14 @@ void sendStatus() {
 static void updateGpsData(int ms)
 {
   GpsON;
+
+  if(!ublox_high_alt_mode){
+      //enable ublox high altitude mode
+      delay(100);
+      setGPS_DynamicModel6();
+      ublox_high_alt_mode = true;
+   }
+
   while (!Serial1) {
     delayMicroseconds(1); // wait for serial port to connect.
   }
@@ -533,5 +542,103 @@ static void printStr(const char *str, int len)
     Serial.print(i < slen ? str[i] : ' ');
 #endif
 }
+//following GPS code from : https://github.com/HABduino/HABduino/blob/master/Software/habduino_v4/habduino_v4.ino
+void setGPS_DynamicModel6()
+{
+ int gps_set_sucess=0;
+ uint8_t setdm6[] = {
+ 0xB5, 0x62, 0x06, 0x24, 0x24, 0x00, 0xFF, 0xFF, 0x06,
+ 0x03, 0x00, 0x00, 0x00, 0x00, 0x10, 0x27, 0x00, 0x00,
+ 0x05, 0x00, 0xFA, 0x00, 0xFA, 0x00, 0x64, 0x00, 0x2C,
+ 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x16, 0xDC };
+ 
+ while(!gps_set_sucess)
+ {
+ sendUBX(setdm6, sizeof(setdm6)/sizeof(uint8_t));
+ gps_set_sucess=getUBX_ACK(setdm6);
+ }
+}
 
+void setGPS_DynamicModel3()
+{
+  int gps_set_sucess=0;
+  uint8_t setdm3[] = {
+    0xB5, 0x62, 0x06, 0x24, 0x24, 0x00, 0xFF, 0xFF, 0x03,
+    0x03, 0x00, 0x00, 0x00, 0x00, 0x10, 0x27, 0x00, 0x00,
+    0x05, 0x00, 0xFA, 0x00, 0xFA, 0x00, 0x64, 0x00, 0x2C,
+    0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x13, 0x76           };
+  while(!gps_set_sucess)
+  {
+    sendUBX(setdm3, sizeof(setdm3)/sizeof(uint8_t));
+    gps_set_sucess=getUBX_ACK(setdm3);
+  }
+}
 
+void sendUBX(uint8_t *MSG, uint8_t len) {
+ Serial1.flush();
+ Serial1.write(0xFF);
+ _delay_ms(500);
+ for(int i=0; i<len; i++) {
+ Serial1.write(MSG[i]);
+ }
+}
+boolean getUBX_ACK(uint8_t *MSG) {
+ uint8_t b;
+ uint8_t ackByteID = 0;
+ uint8_t ackPacket[10];
+ unsigned long startTime = millis();
+ 
+// Construct the expected ACK packet
+ ackPacket[0] = 0xB5; // header
+ ackPacket[1] = 0x62; // header
+ ackPacket[2] = 0x05; // class
+ ackPacket[3] = 0x01; // id
+ ackPacket[4] = 0x02; // length
+ ackPacket[5] = 0x00;
+ ackPacket[6] = MSG[2]; // ACK class
+ ackPacket[7] = MSG[3]; // ACK id
+ ackPacket[8] = 0; // CK_A
+ ackPacket[9] = 0; // CK_B
+ 
+// Calculate the checksums
+ for (uint8_t ubxi=2; ubxi<8; ubxi++) {
+ ackPacket[8] = ackPacket[8] + ackPacket[ubxi];
+ ackPacket[9] = ackPacket[9] + ackPacket[8];
+ }
+ 
+while (1) {
+ 
+// Test for success
+ if (ackByteID > 9) {
+ // All packets in order!
+ return true;
+ }
+ 
+// Timeout if no valid response in 3 seconds
+ if (millis() - startTime > 3000) {
+ return false;
+ }
+ 
+// Make sure data is available to read
+ if (Serial1.available()) {
+ b = Serial1.read();
+ 
+// Check that bytes arrive in sequence as per expected ACK packet
+ if (b == ackPacket[ackByteID]) {
+ ackByteID++;
+ }
+ else {
+ ackByteID = 0; // Reset and look again, invalid order
+ }
+ }
+ }
+}
+
+void setGPS_PowerSaveMode() {
+  // Power Save Mode 
+  uint8_t setPSM[] = { 
+    0xB5, 0x62, 0x06, 0x11, 0x02, 0x00, 0x08, 0x01, 0x22, 0x92           }; // Setup for Power Save Mode (Default Cyclic 1s)
+  sendUBX(setPSM, sizeof(setPSM)/sizeof(uint8_t));
+}
