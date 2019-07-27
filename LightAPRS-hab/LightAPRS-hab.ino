@@ -396,12 +396,12 @@ static void updateGpsData(int ms)
 {
   GpsON;
 
-  if(!ublox_high_alt_mode){
+  //if(!ublox_high_alt_mode){
       //enable ublox high altitude mode
       delay(100);
       setGPS_DynamicModel6();
       ublox_high_alt_mode = true;
-   }
+   //}
 
   while (!Serial1) {
     delayMicroseconds(1); // wait for serial port to connect.
