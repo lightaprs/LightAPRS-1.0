@@ -114,6 +114,10 @@ If you have any questions or need supoort, please contact support@lightaprs.com
 
 A. Please check out our wiki page Tips & Tricks for Pico Balloons:  https://github.com/lightaprs/LightAPRS-1.0/wiki/Tips-&-Tricks-for-Pico-Balloons
 
+**Q. Do I need a permission to launch a pico balloon?**
+
+A. No you don't. Since pico balloons are very small and light, you are FAA 101 exempt. Please check out [this page](https://medium.com/loonar-technologies/faa-101-how-to-legally-get-your-high-altitude-balloon-to-near-space-742a0acf0c45) for detailed info.
+
 **Q. What kind of antenna do i need to use on LightAPRS?**
 
 A. You can use any type. For airborne projects (such as balloons, rockets, rc planes, drones, etc.) we suggest quarter wave monopole antenna becuase this makes your payload lighter. So just cut a light 50 cm. wire and solder it to antenna footprint (A1) Since your payload is airborn and wavelenght is 2 meters, you don't need a wire for ground.
