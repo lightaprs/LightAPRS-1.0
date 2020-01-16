@@ -41,7 +41,7 @@ char  Symbol='O'; // '/O' for balloon, '/>' for car, for more info : http://www.
 bool  alternateSymbolTable = false ; //false = '/' , true = '\'
 
 char comment[50] = "http://www.lightaprs.com"; // Max 50 char
-char StatusMessage[50] = "LightAPRS by TA9OHC & TA2MUN";
+char StatusMessage[50] = "LightAPRS by TA2NHP & TA2MUN";
 //*****************************************************************************
 
 
@@ -120,6 +120,8 @@ void setup() {
   APRS_setPath2("WIDE2", Wide2);
   APRS_useAlternateSymbolTable(alternateSymbolTable); 
   APRS_setSymbol(Symbol);
+  //increase following value (for example to 500UL) if you experience packet loss/decode issues. 
+  APRS_setPreamble(350UL);  
   APRS_setPathSize(pathSize);
   AprsPinInput;
   
@@ -386,7 +388,19 @@ void updateTelemetry() {
   telemetry_buff[7] = '/';
   telemetry_buff[8] = 'A';
   telemetry_buff[9] = '=';
-  sprintf(telemetry_buff + 10, "%06lu", (long)gps.altitude.feet());
+  //sprintf(telemetry_buff + 10, "%06lu", (long)gps.altitude.feet());
+
+  //fixing negative altitude values causing display bug on aprs.fi
+  float tempAltitude = gps.altitude.feet();
+
+  if (tempAltitude>0){
+    //for positive values
+    sprintf(telemetry_buff + 10, "%06lu", (long)tempAltitude);
+  } else{
+    //for negative values
+    sprintf(telemetry_buff + 10, "%06d", (long)tempAltitude);
+    } 
+  
   telemetry_buff[16] = ' ';
   sprintf(telemetry_buff + 17, "%03d", TxCount);
   telemetry_buff[20] = 'T';

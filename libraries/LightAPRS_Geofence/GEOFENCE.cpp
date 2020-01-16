@@ -101,10 +101,11 @@ int32_t pointInPolygonF(int32_t polyCorners, float * polygon, float latitude, fl
 						Indonesia			144.390
 						Malaysia			144.390
 		
-	NO AIRBORNE APRS:
-						France
+	NO AIRBORNE APRS:											
 						Latvia
+						North Korea
 						United Kingdom
+						Yemen
 	
 	Expected input FLOAT for latitude and longitude as in GPS_UBX_latitude_Float and GPS_UBX_longitude_Float.
 */
@@ -120,6 +121,7 @@ void GEOFENCE_position(float latitude, float longitude)
 		{
 			if(pointInPolygonF(9, UKF, latitude, longitude) == 1)				{GEOFENCE_no_tx = 1;GEOFENCE_APRS_frequency = 144800000;}
 			else if(pointInPolygonF(10, LatviaF, latitude, longitude) == 1)		{GEOFENCE_no_tx = 1;GEOFENCE_APRS_frequency = 144800000;}
+			else if(pointInPolygonF(5, YemenF, latitude, longitude) == 1)		{GEOFENCE_no_tx = 1;GEOFENCE_APRS_frequency = 144800000;}
 			else																{GEOFENCE_no_tx = 0; GEOFENCE_APRS_frequency = 144800000;}
 		}
 		
@@ -158,9 +160,10 @@ void GEOFENCE_position(float latitude, float longitude)
 		
 		// S 1/2
 		if(latitude > 19.2)
-		{
-			if(pointInPolygonF(12, ChinaF, latitude, longitude) == 1)			{GEOFENCE_no_tx = 0; GEOFENCE_APRS_frequency = 144640000;}
-			else if(pointInPolygonF(7, JapanF, latitude, longitude) == 1)		{GEOFENCE_no_tx = 0; GEOFENCE_APRS_frequency = 144660000;}
+		{	
+			if(pointInPolygonF(6, North_KoreaF, latitude, longitude) == 1)		{GEOFENCE_no_tx = 1; GEOFENCE_APRS_frequency = 144620000;}	
+			else if(pointInPolygonF(12, ChinaF, latitude, longitude) == 1)		{GEOFENCE_no_tx = 0; GEOFENCE_APRS_frequency = 144640000;}
+			else if(pointInPolygonF(7, JapanF, latitude, longitude) == 1)		{GEOFENCE_no_tx = 0; GEOFENCE_APRS_frequency = 144660000;}		
 			else if(pointInPolygonF(5, South_KoreaF, latitude, longitude) == 1)	{GEOFENCE_no_tx = 0; GEOFENCE_APRS_frequency = 144620000;}
 			else if(pointInPolygonF(5, ThailandF, latitude, longitude) == 1)	{GEOFENCE_no_tx = 0; GEOFENCE_APRS_frequency = 145525000;}
 			else																{GEOFENCE_no_tx = 0; GEOFENCE_APRS_frequency = 144800000;}
