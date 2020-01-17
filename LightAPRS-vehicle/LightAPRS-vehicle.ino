@@ -103,6 +103,8 @@ void setup() {
   APRS_setPath2("WIDE2", Wide2);
   APRS_useAlternateSymbolTable(alternateSymbolTable); 
   APRS_setSymbol(Symbol);
+  //increase following value (for example to 500UL) if you experience packet loss/decode issues. 
+  APRS_setPreamble(350UL);  
   APRS_setPathSize(pathSize);
   AprsPinInput;
   
