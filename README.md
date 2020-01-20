@@ -114,6 +114,8 @@ If you have any questions or need supoort, please contact support@lightaprs.com
 
 A. Please check out our wiki page Tips & Tricks for Pico Balloons:  https://github.com/lightaprs/LightAPRS-1.0/wiki/Tips-&-Tricks-for-Pico-Balloons
 
+[![](http://img.youtube.com/vi/0Y5F734GSuE/0.jpg)](http://www.youtube.com/watch?v=0Y5F734GSuE "MDM-3 Assembly, Fill & Launch")
+
 **Q. Do I need a permission to launch a pico balloon?**
 
 A. No you don't. Since pico balloons are very small and light, you are FAA 101 exempt. Please check out [this page](https://medium.com/loonar-technologies/faa-101-how-to-legally-get-your-high-altitude-balloon-to-near-space-742a0acf0c45) for detailed info.
