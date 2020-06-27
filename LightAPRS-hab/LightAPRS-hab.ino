@@ -31,21 +31,21 @@
 //#define DEVMODE // Development mode. Uncomment to enable for debugging.
 
 //****************************************************************************
-char  CallSign[7]="NOCALL"; //DO NOT FORGET TO CHANGE YOUR CALLSIGN
-int   CallNumber=11; //SSID http://www.aprs.org/aprs11/SSIDs.txt
+char  CallSign[7]="KD4BFP"; //DO NOT FORGET TO CHANGE YOUR CALLSIGN
+int   CallNumber=6; //SSID http://www.aprs.org/aprs11/SSIDs.txt
 char  Symbol='O'; // '/O' for balloon, '/>' for car, for more info : http://www.aprs.org/symbols/symbols-new.txt
 bool alternateSymbolTable = false ; //false = '/' , true = '\'
 
 char Frequency[9]="144.3900"; //default frequency. 144.3900 for US, 144.8000 for Europe
 
-char comment[50] = "http://www.lightaprs.com"; // Max 50 char
-char StatusMessage[50] = "LightAPRS by TA9OHC & TA2MUN"; 
+char comment[50] = "First Testing of Light APRS"; // Max 50 char
+char StatusMessage[50] = "This is a BrightLinks Status Msg"; 
 //*****************************************************************************
 
 
-unsigned int   BeaconWait=60;  //seconds sleep for next beacon (TX).
+unsigned int   BeaconWait=42;  //seconds sleep for next beacon (TX).
 unsigned int   BattWait=60;    //seconds sleep if super capacitors/batteries are below BattMin (important if power source is solar panel) 
-float BattMin=4.5;        // min Volts to wake up.
+float BattMin=4.0;        // min Volts to wake up.
 float DraHighVolt=8.0;    // min Volts for radio module (DRA818V) to transmit (TX) 1 Watt, below this transmit 0.5 Watt. You don't need 1 watt on a balloon. Do not change this.
 //float GpsMinVolt=4.0; //min Volts for GPS to wake up. (important if power source is solar panel) 
 
@@ -61,7 +61,7 @@ Due to their extended transmit range due to elevation, multiple digipeater hops 
 Multi-hop paths just add needless congestion on the shared APRS channel in areas hundreds of miles away from the aircraft's own location.  
 NEVER use WIDE1-1 in an airborne path, since this can potentially trigger hundreds of home stations simultaneously over a radius of 150-200 miles. 
  */
-int pathSize=2; // 2 for WIDE1-N,WIDE2-N ; 1 for WIDE2-N
+int pathSize=1; // 2 for WIDE1-N,WIDE2-N ; 1 for WIDE2-N
 boolean autoPathSizeHighAlt = true; //force path to WIDE2-N only for high altitude (airborne) beaconing (over 1.000 meters (3.280 feet)) 
 
 //boolean GpsFirstFix=false;
@@ -116,6 +116,8 @@ void setup() {
 }
 
 void loop() {
+  float tempC;
+  float pressure;
    wdt_reset();
   
   if (readBatt() > BattMin) {
@@ -139,7 +141,11 @@ void loop() {
     updateGpsData(1000);
     gpsDebug();
 
-    
+    //debug for cjr
+    //sendStatus();
+    tempC = bmp.readTemperature();
+    pressure = bmp.readPressure();
+
     if ((gps.location.age() < 1000 || gps.location.isUpdated()) && gps.location.isValid()) {
       if (gps.satellites.isValid() && (gps.satellites.value() > 3)) {
       updatePosition();
@@ -378,7 +384,8 @@ void sendStatus() {
   delay(2000);
   RfPttON;
   delay(1000);
-    
+  sprintf(StatusMessage, "txCnt %03d satCnt %02d alt %06ul", TxCount, (int)gps.satellites.value(), (long)gps.altitude.feet());
+
   APRS_sendStatus(StatusMessage, strlen(StatusMessage));
 
   while(digitalRead(1)){;}//LibAprs TX Led pin PB1
