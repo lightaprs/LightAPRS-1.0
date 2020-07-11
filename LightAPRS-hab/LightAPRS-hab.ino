@@ -39,8 +39,28 @@ bool alternateSymbolTable = false ; //false = '/' , true = '\'
 char Frequency[9]="144.3900"; //default frequency. 144.3900 for US, 144.8000 for Europe
 
 char comment[50] = "First Testing of Light APRS"; // Max 50 char
-char StatusMessage[50] = "This is a BrightLinks Status Msg"; 
+char StatusMessage[50] = "Status Msg: "; 
 //*****************************************************************************
+// variables for smart_packet 
+int lastalt = 0; // last updated altitude
+bool balloonPopped = false // DO NOT CHANGE
+int balloonDescendRepeat = 0 // AGAIN, DO NOT CHANGE
+SectAUp[] = {60, 20000};
+int SectADown[] = {8, 0};
+
+int SectBUp[] = {40, 50000};
+int SectBDown[] = {40, 10001};
+ 
+int SectCUp[] = {20, 80000};
+int SectCDown[] = {40, 50000};
+
+int SectDUp[] = {10, 1000000};
+int SectDDown[] = {15, 85000};
+// end variables for smart_packet
+
+
+
+
 
 
 unsigned int   BeaconWait=42;  //seconds sleep for next beacon (TX).
@@ -106,7 +126,7 @@ void setup() {
   APRS_useAlternateSymbolTable(alternateSymbolTable); 
   APRS_setSymbol(Symbol);
   //increase following value (for example to 500UL) if you experience packet loss/decode issues. 
-  APRS_setPreamble(350UL);  
+  APRS_setPreamble(500UL);  
   APRS_setPathSize(pathSize);
 
   configDra818(Frequency);
@@ -142,13 +162,14 @@ void loop() {
     gpsDebug();
 
     //debug for cjr
-    //sendStatus();
+    sendStatus();
     tempC = bmp.readTemperature();
     pressure = bmp.readPressure();
 
     if ((gps.location.age() < 1000 || gps.location.isUpdated()) && gps.location.isValid()) {
       if (gps.satellites.isValid() && (gps.satellites.value() > 3)) {
       updatePosition();
+      updateComment(); // julian_smart_packet (APRS Friendly)
       updateTelemetry();
       
       //GpsOFF;
@@ -238,6 +259,37 @@ byte configDra818(char *freq)
   return (ack[0] == 0x30) ? 1 : 0;
 }
 
+void updateComment() {
+  // Hijacks the "comment" field for advanced debug
+  comment[2] = 'A';
+  comment[3] = 'L';
+  comment[4] = 'T';
+  comment[5] = ':';
+  if ((long) gps.altitude.feet() > lastalt) {
+      comment[7] = '^';
+
+  } else if ((long) gps.altitude.feet() < lastalt) {
+    comment[7] = 'v';
+  } else {
+    comment[7] = '-';
+  }
+  comment[8] = ' ';
+  sprintf(comment + 8, "%02d", (int) gps.altitude.feet() - lastalt);
+  comment[10] = 'h';
+  comment[11] = 'P';
+  comment[12] = 'a';
+  comment[13] = ':';
+  if ((long) gps.altitude.feet() > lastalt) {
+      comment[15] = '^';
+
+  } else if ((long) gps.altitude.feet() < lastalt) {
+    comment[7] = 'v';
+  } else {
+    comment[7] = '-';
+  }
+  Serial.println(comment);
+    
+}
 void updatePosition() {
   // Convert and set latitude NMEA string Degree Minute Hundreths of minutes ddmm.hh[S,N].
   char latStr[10];
@@ -301,7 +353,7 @@ void updatePosition() {
 
 
 void updateTelemetry() {
- 
+  
   sprintf(telemetry_buff, "%03d", gps.course.isValid() ? (int)gps.course.deg() : 0);
   telemetry_buff[3] += '/';
   sprintf(telemetry_buff + 4, "%03d", gps.speed.isValid() ? (int)gps.speed.knots() : 0);
@@ -329,6 +381,7 @@ void updateTelemetry() {
   sprintf(telemetry_buff + 50, "%02d", gps.satellites.isValid() ? (int)gps.satellites.value() : 0);
   telemetry_buff[52] = 'S';
   telemetry_buff[53] = ' ';
+  telemetry_buff[54] = 
   sprintf(telemetry_buff + 54, "%s", comment);
   
 
