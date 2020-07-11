@@ -43,9 +43,10 @@ char StatusMessage[50] = "Status Msg: ";
 //*****************************************************************************
 // variables for smart_packet 
 int lastalt = 0; // last updated altitude
-bool balloonPopped = false // DO NOT CHANGE
-int balloonDescendRepeat = 0 // AGAIN, DO NOT CHANGE
-SectAUp[] = {60, 20000};
+bool balloonPopped = false; // DO NOT CHANGE
+int balloonDescendRepeat = 0; // AGAIN, DO NOT CHANGE
+char currentSect = 'A';
+int SectAUp[] = {60, 20000};
 int SectADown[] = {8, 0};
 
 int SectBUp[] = {40, 50000};
@@ -162,13 +163,17 @@ void loop() {
     gpsDebug();
 
     //debug for cjr
-    sendStatus();
+//    sendStatus();
     tempC = bmp.readTemperature();
     pressure = bmp.readPressure();
 
     if ((gps.location.age() < 1000 || gps.location.isUpdated()) && gps.location.isValid()) {
       if (gps.satellites.isValid() && (gps.satellites.value() > 3)) {
+        if (checkTime()) {
+          
+        }
       updatePosition();
+      updateTiming();
       updateComment(); // julian_smart_packet (APRS Friendly)
       updateTelemetry();
       
@@ -177,7 +182,7 @@ void loop() {
       //GpsFirstFix=true;
 
       if(autoPathSizeHighAlt && gps.altitude.feet()>3000){
-            //force to use high altitude settings (WIDE2-n)
+            //force to use high altitude settings (WIDE2-n
             APRS_setPathSize(1);
         } else {
             //use defualt settings  
@@ -209,6 +214,56 @@ void loop() {
     
   }
   
+}
+void checkTime() {
+
+}
+void updateTiming() {
+  long alt = gps.altitude.feet();
+  if (balloonPopped) {
+    if (SectADown[1] <= alt < SectBDown[1]) {
+      currentSect = 'A';
+      BeaconWait = SectADown[0];
+      
+    }
+    else if (SectBDown[1] <= alt < SectCDown[1]) {
+      currentSect = 'B';
+      BeaconWait = SectBDown[0];
+      
+    }
+    else if (SectCDown[1] <= alt < SectDDown[1]) {
+      currentSect = 'C';
+      BeaconWait = SectCDown[0];
+      
+    }
+    else {
+      currentSect = 'D';
+      BeaconWait = SectDDown[0];
+      
+    }
+  }
+  else {
+    if (SectAUp[1] >= alt > SectBUp[1]) {
+      currentSect = 'A';
+      BeaconWait = SectAUp[0];
+      
+    }
+    else if (SectBUp[1] >= alt > SectCUp[1]) {
+      currentSect = 'B';
+      BeaconWait = SectBUp[0];
+      
+    }
+    else if (SectCUp[1] >= alt > SectDUp[1]) {
+      currentSect = 'C';
+      BeaconWait = SectCUp[0];
+      
+    }
+    else {
+      currentSect = 'D';
+      BeaconWait = SectDUp[0];
+      
+    }
+  }
 }
 
 void aprs_msg_callback(struct AX25Msg *msg) {
@@ -260,35 +315,8 @@ byte configDra818(char *freq)
 }
 
 void updateComment() {
-  // Hijacks the "comment" field for advanced debug
-  comment[2] = 'A';
-  comment[3] = 'L';
-  comment[4] = 'T';
-  comment[5] = ':';
-  if ((long) gps.altitude.feet() > lastalt) {
-      comment[7] = '^';
-
-  } else if ((long) gps.altitude.feet() < lastalt) {
-    comment[7] = 'v';
-  } else {
-    comment[7] = '-';
-  }
-  comment[8] = ' ';
-  sprintf(comment + 8, "%02d", (int) gps.altitude.feet() - lastalt);
-  comment[10] = 'h';
-  comment[11] = 'P';
-  comment[12] = 'a';
-  comment[13] = ':';
-  if ((long) gps.altitude.feet() > lastalt) {
-      comment[15] = '^';
-
-  } else if ((long) gps.altitude.feet() < lastalt) {
-    comment[7] = 'v';
-  } else {
-    comment[7] = '-';
-  }
-  Serial.println(comment);
-    
+  //add stuff
+  
 }
 void updatePosition() {
   // Convert and set latitude NMEA string Degree Minute Hundreths of minutes ddmm.hh[S,N].
