@@ -42,6 +42,9 @@ char comment[50] = "First Testing of Light APRS"; // Max 50 char
 char StatusMessage[50] = "Status Msg: "; 
 //*****************************************************************************
 // variables for smart_packet 
+int current_altitude = 0;
+int max_altitude = 0;
+
 int lastalt = 0; // last updated altitude
 bool balloonPopped = false; // DO NOT CHANGE
 int balloonDescendRepeat = 0; // AGAIN, DO NOT CHANGE
@@ -68,8 +71,9 @@ unsigned int   BeaconWait=42;  //seconds sleep for next beacon (TX).
 unsigned int   BattWait=60;    //seconds sleep if super capacitors/batteries are below BattMin (important if power source is solar panel) 
 float BattMin=4.0;        // min Volts to wake up.
 float DraHighVolt=8.0;    // min Volts for radio module (DRA818V) to transmit (TX) 1 Watt, below this transmit 0.5 Watt. You don't need 1 watt on a balloon. Do not change this.
-//float GpsMinVolt=4.0; //min Volts for GPS to wake up. (important if power source is solar panel) 
-
+//float GpsMinVolt=4.0; //min Volts for GPS to wake up. (important if power source is solar panel)
+int secsTillTx = BeaconWait; // Countdown
+int secsToCheckBatt = BattWait; // Also Countdown
 boolean aliveStatus = true; //for tx status message on first wake-up just once.
 
 //do not change WIDE path settings below if you don't know what you are doing :) 
@@ -139,85 +143,89 @@ void setup() {
 void loop() {
   float tempC;
   float pressure;
-   wdt_reset();
-  
-  if (readBatt() > BattMin) {
-  
-  if(aliveStatus){
+  float loop_start = millis();
 
+  wdt_reset();
+
+  if (readBatt() > BattMin) {
+    if(aliveStatus) {
       //send status tx on startup once (before gps fix)
-      
       #if defined(DEVMODE)
         Serial.println(F("Sending"));
       #endif
+      
       sendStatus();
+      
       #if defined(DEVMODE)
         Serial.println(F("Sent"));
       #endif
-      
+
       aliveStatus = false;
-      
-   }
-    
+    }
+    if(secsTillTx <= 0) {
     updateGpsData(1000);
     gpsDebug();
 
-    //debug for cjr
-//    sendStatus();
-    tempC = bmp.readTemperature();
-    pressure = bmp.readPressure();
-
-    if ((gps.location.age() < 1000 || gps.location.isUpdated()) && gps.location.isValid()) {
-      if (gps.satellites.isValid() && (gps.satellites.value() > 3)) {
-        if (checkTime()) {
-          
-        }
-      updatePosition();
-      updateTiming();
-      updateComment(); // julian_smart_packet (APRS Friendly)
-      updateTelemetry();
+    if ((gps.location.age() < 1000 || gps.location.isUpdated()) && 
+        gps.location.isValid()) {
       
-      //GpsOFF;
-      setGPS_PowerSaveMode();
-      //GpsFirstFix=true;
+      if (gps.satellites.isValid() && 
+         (gps.satellites.value() > 3)) {
 
-      if(autoPathSizeHighAlt && gps.altitude.feet()>3000){
-            //force to use high altitude settings (WIDE2-n
+        updateTiming();
+        updateComment();
+        updatePosition();
+        updateTelemetry();
+        
+        //GpsOFF;
+        setGPS_PowerSaveMode();
+        //GpsFirstFix=true;
+    current_altitude = gps.altitude.feet();
+    if(current_altitude > max_altitude) {
+      max_altitude = current_altitude;
+    }
+    if(secsTillTx <= 0) {
+
+          if(autoPathSizeHighAlt && gps.altitude.feet() > 3000){
+            //force to use high altitude settings (WIDE2-n)
             APRS_setPathSize(1);
-        } else {
+          } else {
             //use defualt settings  
             APRS_setPathSize(pathSize);
-        }
-      
-      //send status message every 60 minutes
-      if(gps.time.minute() == 30){               
-        sendStatus();       
-      } else {
+          }
+          
+          //send status message every 5 minutes
+          if((gps.time.minute() % 5) == 0){               
+            sendStatus();       
+          } else {
+            sendLocation();
+          }
+          // refill timer
+          secsTillTx = BeaconWait;
 
-         sendLocation();
-
-      }
-
-      freeMem();
-      Serial.flush();
-      sleepSeconds(BeaconWait);
+          freeMem();
+          Serial.flush();
+    }
+    } // if time to tx
+        // sleepSeconds(BeaconWait-((millis-loop_start)/1000));
 
       } else {
 #if defined(DEVMODE)
       Serial.println(F("Not enough sattelites"));
 #endif
       }
-    } 
+    }
+    secsTillTx--;
+    secsTillTx -= (millis()-loop_start)/1000;
   } else {
+    secsToCheckBatt--;
 
-    sleepSeconds(BattWait);
-    
+    secsToCheckBatt -= (millis()-loop_start)/1000;
+    // sleepSeconds(BattWait-((millis-loop_start)/1000));
   }
-  
+  sleepSeconds(1);
 }
-void checkTime() {
 
-}
 void updateTiming() {
   long alt = gps.altitude.feet();
   if (balloonPopped) {
@@ -241,7 +249,7 @@ void updateTiming() {
       BeaconWait = SectDDown[0];
       
     }
-  }
+  } 
   else {
     if (SectAUp[1] >= alt > SectBUp[1]) {
       currentSect = 'A';
@@ -315,6 +323,56 @@ byte configDra818(char *freq)
 }
 
 void updateComment() {
+  comment[0] = 'U';
+  comment[1] = '/';
+  comment[2] = 'D';
+  comment[3] = ':';
+  comment[4] = ' ';
+  if (gps.altitude.feet() > lastalt) {
+    comment[5] = '^';
+  } else if (gps.altitude.feet() < lastalt) {
+    comment[5] = 'v';
+  } else {
+    comment[5] = '-';
+  }
+  lastalt = gps.altitude.feet();
+  comment[6] = ' ';
+  comment[7] = 'X';
+  comment[8] = 'H';
+  comment[9] = 'U';
+  comment[10] = ':';
+  comment[11] = ' ';
+  String humidity = String(2.34); // Replace later with I2C ref
+  sprintf(comment + 12,"%s", humidity.c_str());
+  comment[16] = '%';
+  comment[17] = ' ';
+  comment[18] = 'X';
+  comment[19] = 'T';
+  comment[20] = 'E';
+  comment[21] = 'M';
+  comment[22] = 'P';
+  comment[23] = ':';
+  comment[24] = ' ';
+  String temp = String(-7382.35); // Replace later with I2C ref
+  sprintf(comment + 25, "%s", temp.c_str());
+  comment[32] = 'C';
+  comment[33] = ' ';
+  comment[34] = 'S';
+  comment[35] = 'E';
+  comment[36] = 'C';
+  comment[37] = 'T';
+  comment[38] = currentSect;
+  if (balloonPopped) {
+    comment[39] = ' ';
+    comment[40] = 'M';
+    comment[41] = 'X';
+    comment[42] = ':';
+    comment[43] = ' ';
+    sprintf(comment + 44, "%03d", (double) max_altitude);
+    
+
+  }
+
   //add stuff
   
 }
