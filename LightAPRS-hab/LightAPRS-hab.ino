@@ -5,6 +5,7 @@
 #include <Wire.h>
 #include <Adafruit_BMP085.h>//https://github.com/adafruit/Adafruit-BMP085-Library
 #include <avr/wdt.h>
+#include "Adafruit_Si7021.h"
 
 #define RfPDPin     19
 #define GpsVccPin   18
@@ -48,6 +49,8 @@ int max_altitude = 0;
 int lastalt = 0; // last updated altitude
 bool balloonPopped = false; // DO NOT CHANGE
 int balloonDescendRepeat = 0; // AGAIN, DO NOT CHANGE
+
+const int numDescendChecks = 5;
 char currentSect = 'A';
 int SectAUp[] = {60, 20000};
 int SectADown[] = {8, 0};
@@ -171,7 +174,7 @@ void loop() {
       
       if (gps.satellites.isValid() && 
          (gps.satellites.value() > 3)) {
-
+        doAltCheck();
         updateTiming();
         updateComment();
         updatePosition();
@@ -226,6 +229,20 @@ void loop() {
   sleepSeconds(1);
 }
 
+
+
+// Begin smartPacket Functions
+void doAltCheck() {
+  if (gps.altitude.feet() <= lastalt) {
+    balloonDescendRepeat ++;
+  } else {
+    balloonDescendRepeat = 0;
+  }
+  if (balloonDescendRepeat >= numDescendChecks) {
+    balloonPopped = true;
+  }
+  
+}
 void updateTiming() {
   long alt = gps.altitude.feet();
   if (balloonPopped) {
@@ -273,6 +290,73 @@ void updateTiming() {
     }
   }
 }
+
+void updateComment() {
+  Adafruit_Si7021 i2c_tracker = Adafruit_Si7021();
+  comment[0] = 'U';
+  comment[1] = '/';
+  comment[2] = 'D';
+  comment[3] = ':';
+  comment[4] = ' ';
+  if (gps.altitude.feet() > lastalt) {
+    comment[5] = '^';
+  } else if (gps.altitude.feet() < lastalt) {
+    comment[5] = 'v';
+  } else {
+    comment[5] = '-';
+  }
+  lastalt = gps.altitude.feet();
+  comment[6] = ' ';
+  comment[7] = 'X';
+  comment[8] = 'H';
+  comment[9] = 'U';
+  comment[10] = ':';
+  comment[11] = ' ';
+  String humidity = ""; // to please compiler
+  if (!i2c_tracker.begin()) {
+    String humidity = "****"; 
+  } else {
+    String humidity = String(i2c_tracker.readHumidity());
+  }
+  sprintf(comment + 12,"%s", humidity.c_str());
+  comment[16] = '%';
+  comment[17] = ' ';
+  comment[18] = 'X';
+  comment[19] = 'T';
+  comment[20] = 'E';
+  comment[21] = 'M';
+  comment[22] = 'P';
+  comment[23] = ':';
+  comment[24] = ' ';
+  String temp = ""; // to please compiler
+  if (!i2c_tracker.begin()) {
+    temp = "*******"; 
+  } else {
+    temp = String(i2c_tracker.readTemperature());
+  }
+  sprintf(comment + 25, "%s", temp.c_str());
+  comment[32] = 'C';
+  comment[33] = ' ';
+  comment[34] = 'S';
+  comment[35] = 'E';
+  comment[36] = 'C';
+  comment[37] = 'T';
+  comment[38] = currentSect;
+  if (balloonPopped) {
+    comment[39] = ' ';
+    comment[40] = 'M';
+    comment[41] = 'X';
+    comment[42] = ':';
+    comment[43] = ' ';
+    sprintf(comment + 44, "%03d", (double) max_altitude);
+    
+
+  }
+  
+}
+
+// end smartPacket Functions
+
 
 void aprs_msg_callback(struct AX25Msg *msg) {
   //do not remove this function, necessary for LibAPRS
@@ -322,60 +406,8 @@ byte configDra818(char *freq)
   return (ack[0] == 0x30) ? 1 : 0;
 }
 
-void updateComment() {
-  comment[0] = 'U';
-  comment[1] = '/';
-  comment[2] = 'D';
-  comment[3] = ':';
-  comment[4] = ' ';
-  if (gps.altitude.feet() > lastalt) {
-    comment[5] = '^';
-  } else if (gps.altitude.feet() < lastalt) {
-    comment[5] = 'v';
-  } else {
-    comment[5] = '-';
-  }
-  lastalt = gps.altitude.feet();
-  comment[6] = ' ';
-  comment[7] = 'X';
-  comment[8] = 'H';
-  comment[9] = 'U';
-  comment[10] = ':';
-  comment[11] = ' ';
-  String humidity = String(2.34); // Replace later with I2C ref
-  sprintf(comment + 12,"%s", humidity.c_str());
-  comment[16] = '%';
-  comment[17] = ' ';
-  comment[18] = 'X';
-  comment[19] = 'T';
-  comment[20] = 'E';
-  comment[21] = 'M';
-  comment[22] = 'P';
-  comment[23] = ':';
-  comment[24] = ' ';
-  String temp = String(-7382.35); // Replace later with I2C ref
-  sprintf(comment + 25, "%s", temp.c_str());
-  comment[32] = 'C';
-  comment[33] = ' ';
-  comment[34] = 'S';
-  comment[35] = 'E';
-  comment[36] = 'C';
-  comment[37] = 'T';
-  comment[38] = currentSect;
-  if (balloonPopped) {
-    comment[39] = ' ';
-    comment[40] = 'M';
-    comment[41] = 'X';
-    comment[42] = ':';
-    comment[43] = ' ';
-    sprintf(comment + 44, "%03d", (double) max_altitude);
-    
 
-  }
 
-  //add stuff
-  
-}
 void updatePosition() {
   // Convert and set latitude NMEA string Degree Minute Hundreths of minutes ddmm.hh[S,N].
   char latStr[10];
@@ -630,11 +662,11 @@ static void printFloat(float val, bool valid, int len, int prec)
   {
     Serial.print(val, prec);
     int vi = abs((int)val);
-    int flen = prec + (val < 0.0 ? 2 : 1); // . and -
-    flen += vi >= 1000 ? 4 : vi >= 100 ? 3 : vi >= 10 ? 2 : 1;
     for (int i = flen; i < len; ++i)
       Serial.print(' ');
-  }
+  }  int flen = prec + (val < 0.0 ? 2 : 1); // . and -
+    flen += vi >= 1000 ? 4 : vi >= 100 ? 3 : vi >= 10 ? 2 : 1;
+  
 #endif
 }
 
