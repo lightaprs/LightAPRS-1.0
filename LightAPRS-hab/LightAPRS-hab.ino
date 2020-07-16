@@ -44,7 +44,16 @@ void updateTelemetry();
 void setGPS_PowerSaveMode();
 void sendLocation();
 void freeMem();
-void sleepSeconds(int sec); 
+void sleepSeconds(int sec);
+void doAltCheck();
+void updateZone();
+void setGPS_DynamicModel6();
+static void printInt(unsigned long val, bool valid, int len);
+static void printFloat(float val, bool valid, int len, int prec);
+static void printDateTime(TinyGPSDate &d, TinyGPSTime &t);
+static void printStr(const char *str, int len);
+void sendUBX(uint8_t *MSG, uint8_t len);
+boolean getUBX_ACK(uint8_t *MSG);
 
 //****************************************************************************
 char  CallSign[7]="KD4BFP"; //DO NOT FORGET TO CHANGE YOUR CALLSIGN
