@@ -1,4 +1,3 @@
-
 #include <LibAPRS.h>        //Modified version of https://github.com/markqvist/LibAPRS
 #include <SoftwareSerial.h>
 #include <TinyGPS++.h>      //https://github.com/mikalhart/TinyGPSPlus
@@ -32,6 +31,21 @@
 
 #define DEVMODE // Development mode. Uncomment to enable for debugging.
 
+
+// begin prototypes
+byte configDra818(char *freq);
+float readBatt();
+void sendStatus();
+static void updateGpsData(int ms);
+void gpsDebug();
+void updateComment();
+void updatePosition();
+void updateTelemetry();
+void setGPS_PowerSaveMode();
+void sendLocation();
+void freeMem();
+void sleepSeconds(int sec); 
+
 //****************************************************************************
 char  CallSign[7]="KD4BFP"; //DO NOT FORGET TO CHANGE YOUR CALLSIGN
 int   CallNumber=6; //SSID http://www.aprs.org/aprs11/SSIDs.txt
@@ -50,11 +64,11 @@ long current_altitude = 0;
 long max_altitude = 0;
 
 long lastalt = 0; // last updated altitude
-bool balloonPopped = false; // DO NOT CHANGE
+bool balloonPopped = true; // DO NOT CHANGE
 int balloonDescendRepeat = 0; // AGAIN, DO NOT CHANGE
 
 const int numDescendChecks = 5;
-char currentSect = 'A';
+int currentSect = 0;
 
 struct txZones {
   long secsForTx;
@@ -64,15 +78,15 @@ struct txZones {
 
 #define NUM_ZONES 8
 struct txZones zones[NUM_ZONES] = {
-  {60, 20000, true},
-  {120, 50000, true},
-  {20, 80000, true},
-  {10, 1000000, true},
-  {15, 85000, false},
-  {40, 50000, false},
-  {40, 10001, false},
-  {8,  0, false},
-}; 
+  {1, 20000, true},
+  {1, 50000, true},
+  {1, 80000, true},
+  {1, 1000000, true},
+  {1, 80000, false},
+  {1, 50000, false},
+  {1, 20000, false},
+  {1,  0, false},
+};
 
 // end variables for smart_packet
 
@@ -156,7 +170,6 @@ void setup() {
   bmp.begin();
  
 }
-
 void loop() {
   float tempC;
   float pressure;
@@ -191,7 +204,7 @@ void loop() {
           gps.location.isValid()) {
         
         if (gps.satellites.isValid() && 
-           (gps.satellites.value() > 3)) {
+           gps.satellites.value() > 3) {
 
           doAltCheck();
           updateZone(); //updates BeaconWait
@@ -263,21 +276,27 @@ void doAltCheck() {
   }
 }
 void updateZone() {
-  long alt = 40000; //gps.altitude.feet();
+  
+  long a = gps.altitude.feet();
+  
   for (int i=0; i < NUM_ZONES; i++) {
       if (zones[i].goingUp == true && balloonPopped == false) {
-        if (alt <= zones[i].altitude) {
+        if (a <= zones[i].altitude) {
+          
           currentSect = i;
           BeaconWait = zones[i].secsForTx;
+          return;
 
         } else {
           continue;
         }
       } else if (zones[i].goingUp == false && balloonPopped == true) {
         
-          if (zones[i].altitude <= alt) {
+          if (zones[i].altitude <= a) {
             currentSect = i;
             BeaconWait = zones[i].secsForTx;
+
+            return;
           } else {
           continue;
           }
@@ -309,10 +328,7 @@ void updateComment() {
   comment[11] = ':';
   comment[12] = ' ';
 
-  sprintf(comment + 13, "%4s", 
-          i2c_tracker.begin() ? 
-          String(i2c_tracker.readHumidity()) : 
-          "Error");
+  sprintf(comment + 13, String(i2c_tracker.readHumidity()).c_str());
 
   comment[17] = '%';
   comment[18] = ' ';
@@ -325,10 +341,7 @@ void updateComment() {
   comment[25] = ' ';
   
 
-  sprintf(comment + 26, "%7s", 
-          i2c_tracker.begin() ? 
-          String(i2c_tracker.readTemperature()) : 
-          "Error");
+  sprintf(comment + 26, String(i2c_tracker.readTemperature()).c_str());
 
   comment[33] = 'C';
   if (balloonPopped) {
