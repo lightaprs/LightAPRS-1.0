@@ -64,7 +64,6 @@ bool alternateSymbolTable = false ; //false = '/' , true = '\'
 char Frequency[9]="144.3900"; //default frequency. 144.3900 for US, 144.8000 for Europe
 
 char comment[50] = "First Testing of Light APRS"; // Max 50 char
-char StatusMessage[50] = "Status Msg: "; 
 //*****************************************************************************
 // variables for smart_packet 
 Adafruit_Si7021 i2c_tracker = Adafruit_Si7021();
@@ -73,7 +72,7 @@ long current_altitude = 0;
 long max_altitude = 0;
 
 long lastalt = 0; // last updated altitude
-bool balloonPopped = false; // DO NOT CHANGE
+bool balloonPopped = true; // DO NOT CHANGE
 int balloonDescendRepeat = 0; // AGAIN, DO NOT CHANGE
 
 const int numDescendChecks = 5;
@@ -81,20 +80,21 @@ int currentSect = 0;
 
 struct txZones {
   long secsForTx;
+  long secsForGPS;
   long altitude;
   bool goingUp;
 };
 
 #define NUM_ZONES 8
 struct txZones zones[NUM_ZONES] = {
-  {60, 20000, true},
-  {60, 50000, true},
-  {30, 80000, true},
-  {15, 1000000, true},
-  {30, 80000, false},
-  {60, 50000, false},
-  {30, 20000, false},
-  {15,  0, false},
+  {60, 1, 20000, true},
+  {60, 1, 50000, true},
+  {30, 1, 80000, true},
+  {15, 1, 1000000, true},
+  {30, 1, 80000, false},
+  {30, 1, 50000, false},
+  {60, 1, 20000, false},
+  {15, 1,  0, false},
 };
 
 // end variables for smart_packet
@@ -104,13 +104,15 @@ struct txZones zones[NUM_ZONES] = {
 
 
 
-unsigned int   GPSWait=0;  //seconds sleep if no GPS.
+unsigned int   GPSWait=10;  //seconds sleep if no GPS.
 unsigned int   BeaconWait=1;  //seconds sleep for next beacon (TX).
+unsigned int   GPSPingWait=1;
 unsigned int   BattWait=60;    //seconds sleep if super capacitors/batteries are below BattMin (important if power source is solar panel) 
 float BattMin=4.0;        // min Volts to wake up.
 float DraHighVolt=8.0;    // min Volts for radio module (DRA818V) to transmit (TX) 1 Watt, below this transmit 0.5 Watt. You don't need 1 watt on a balloon. Do not change this.
 //float GpsMinVolt=4.0; //min Volts for GPS to wake up. (important if power source is solar panel)
 int secsTillTx = BeaconWait; // Countdown
+int secsTillPing = GPSPingWait;
 float last_tx_millis = 0;
 
 int secsToCheckBatt = BattWait; // Also Countdown
@@ -202,6 +204,14 @@ void loop() {
       aliveStatus = false;
     }
 
+    if(secsTillPing <= 0) {
+      current_altitude = gps.altitude.feet();
+      if(current_altitude > max_altitude) {
+        max_altitude = current_altitude;
+      }
+      secsTillPing = GPSPingWait;
+    }
+
     if(secsTillTx <= 0) {
       last_tx_millis = millis();
       secsTillTx = GPSWait;
@@ -225,10 +235,6 @@ void loop() {
           //GpsOFF;
           setGPS_PowerSaveMode();
           //GpsFirstFix=true;
-          current_altitude = gps.altitude.feet();
-          if(current_altitude > max_altitude) {
-            max_altitude = current_altitude;
-          }
           if(autoPathSizeHighAlt && gps.altitude.feet() > 3000){
             //force to use high altitude settings (WIDE2-n)
             APRS_setPathSize(1);
@@ -247,6 +253,7 @@ void loop() {
           freeMem();
           Serial.flush();
         } // if time to tx
+        // sleepSeconds(BeaconWait-((millis-loop_start)/1000));
       } else {
 #if defined(DEVMODE)
       Serial.println(F("Not enough satelites"));
@@ -261,8 +268,15 @@ void loop() {
     secsToCheckBatt -= (millis()-loop_start)/1000;
     // sleepSeconds(BattWait-((millis-loop_start)/1000));
   }
-  sleepSeconds(secsTillTx);
-  secsTillTx = 0;
+  int sleepSecs;
+  if (secsTillPing <= secsTillTx) {
+    sleepSecs = secsTillPing;
+  } else {
+    sleepSecs = secsTillTx;
+  }
+  sleepSeconds(sleepSecs);
+  secsTillTx -= secsTillPing;
+  secsTillPing = 0;
 }
 
 
@@ -288,6 +302,7 @@ void updateZone() {
           
           currentSect = i;
           BeaconWait = zones[i].secsForTx;
+          GPSPingWait = zones[i].secsForGPS;
           return;
 
         } else {
@@ -344,7 +359,8 @@ void updateComment() {
   comment[25] = ' ';
   
 
-  sprintf(comment + 26, "%7s", String(i2c_tracker.readTemperature()).c_str());
+
+  sprintf(comment + 26, String(i2c_tracker.readTemperature()).c_str());
 
   comment[33] = 'C';
   if (balloonPopped) {
@@ -503,6 +519,7 @@ void updateTelemetry() {
   sprintf(telemetry_buff + 50, "%02d", gps.satellites.isValid() ? (int)gps.satellites.value() : 0);
   telemetry_buff[52] = 'S';
   telemetry_buff[53] = ' ';
+  telemetry_buff[54] = 
   sprintf(telemetry_buff + 54, "%s", comment);
   
 
