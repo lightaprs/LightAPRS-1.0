@@ -73,7 +73,7 @@ long current_altitude = 0;
 long max_altitude = 0;
 
 long lastalt = 0; // last updated altitude
-bool balloonPopped = true; // DO NOT CHANGE
+bool balloonPopped = false; // DO NOT CHANGE
 int balloonDescendRepeat = 0; // AGAIN, DO NOT CHANGE
 
 const int numDescendChecks = 5;
@@ -237,8 +237,8 @@ void loop() {
             APRS_setPathSize(pathSize);
           }
           
-          //send status message every 5 minutes
-          if((gps.time.minute() % 5) == 0) {               
+          //send status message every 15 minutes
+          if((gps.time.minute() % 15) == 0) {               
             sendStatus();       
           } else {
             sendLocation();
@@ -256,9 +256,6 @@ void loop() {
     }
 
     secsTillTx -= round((millis()-loop_start)/1000);
-    Serial.println("secsTillTx->");
-    Serial.println(secsTillTx);
-    Serial.println((millis()-loop_start)/1000);
   } else {
     secsToCheckBatt--;
 
@@ -350,7 +347,7 @@ void updateComment() {
   comment[25] = ' ';
   
 
-  sprintf(comment + 26, String(i2c_tracker.readTemperature()).c_str());
+  sprintf(comment + 26, "%7s", String(i2c_tracker.readTemperature()).c_str());
 
   comment[33] = 'C';
   if (balloonPopped) {
