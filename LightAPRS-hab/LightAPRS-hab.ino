@@ -1,3 +1,4 @@
+
 #include <LibAPRS.h>        //Modified version of https://github.com/markqvist/LibAPRS
 #include <SoftwareSerial.h>
 #include <TinyGPS++.h>      //https://github.com/mikalhart/TinyGPSPlus
@@ -29,7 +30,7 @@
 #define AprsPinInput  pinMode(12,INPUT);pinMode(13,INPUT);pinMode(14,INPUT);pinMode(15,INPUT)
 #define AprsPinOutput pinMode(12,OUTPUT);pinMode(13,OUTPUT);pinMode(14,OUTPUT);pinMode(15,OUTPUT)
 
-//#define DEVMODE // Development mode. Uncomment to enable for debugging.
+#define DEVMODE // Development mode. Uncomment to enable for debugging.
 
 //****************************************************************************
 char  CallSign[7]="KD4BFP"; //DO NOT FORGET TO CHANGE YOUR CALLSIGN
@@ -43,26 +44,36 @@ char comment[50] = "First Testing of Light APRS"; // Max 50 char
 char StatusMessage[50] = "Status Msg: "; 
 //*****************************************************************************
 // variables for smart_packet 
-int current_altitude = 0;
-int max_altitude = 0;
+Adafruit_Si7021 i2c_tracker = Adafruit_Si7021();
 
-int lastalt = 0; // last updated altitude
+long current_altitude = 0;
+long max_altitude = 0;
+
+long lastalt = 0; // last updated altitude
 bool balloonPopped = false; // DO NOT CHANGE
 int balloonDescendRepeat = 0; // AGAIN, DO NOT CHANGE
 
 const int numDescendChecks = 5;
 char currentSect = 'A';
-int SectAUp[] = {60, 20000};
-int SectADown[] = {8, 0};
 
-int SectBUp[] = {40, 50000};
-int SectBDown[] = {40, 10001};
- 
-int SectCUp[] = {20, 80000};
-int SectCDown[] = {40, 50000};
+struct txZones {
+  long secsForTx;
+  long altitude;
+  bool goingUp;
+};
 
-int SectDUp[] = {10, 1000000};
-int SectDDown[] = {15, 85000};
+#define NUM_ZONES 8
+struct txZones zones[NUM_ZONES] = {
+  {60, 20000, true},
+  {120, 50000, true},
+  {20, 80000, true},
+  {10, 1000000, true},
+  {15, 85000, false},
+  {40, 50000, false},
+  {40, 10001, false},
+  {8,  0, false},
+}; 
+
 // end variables for smart_packet
 
 
@@ -70,12 +81,15 @@ int SectDDown[] = {15, 85000};
 
 
 
-unsigned int   BeaconWait=42;  //seconds sleep for next beacon (TX).
+unsigned int   GPSWait=10;  //seconds sleep if no GPS.
+unsigned int   BeaconWait=1;  //seconds sleep for next beacon (TX).
 unsigned int   BattWait=60;    //seconds sleep if super capacitors/batteries are below BattMin (important if power source is solar panel) 
 float BattMin=4.0;        // min Volts to wake up.
 float DraHighVolt=8.0;    // min Volts for radio module (DRA818V) to transmit (TX) 1 Watt, below this transmit 0.5 Watt. You don't need 1 watt on a balloon. Do not change this.
 //float GpsMinVolt=4.0; //min Volts for GPS to wake up. (important if power source is solar panel)
 int secsTillTx = BeaconWait; // Countdown
+float last_tx_millis = 0;
+
 int secsToCheckBatt = BattWait; // Also Countdown
 boolean aliveStatus = true; //for tx status message on first wake-up just once.
 
@@ -165,30 +179,34 @@ void loop() {
 
       aliveStatus = false;
     }
-    if(secsTillTx <= 0) {
-    updateGpsData(1000);
-    gpsDebug();
 
-    if ((gps.location.age() < 1000 || gps.location.isUpdated()) && 
-        gps.location.isValid()) {
-      
-      if (gps.satellites.isValid() && 
-         (gps.satellites.value() > 3)) {
-        doAltCheck();
-        updateTiming();
-        updateComment();
-        updatePosition();
-        updateTelemetry();
+    if(secsTillTx <= 0) {
+      last_tx_millis = millis();
+      secsTillTx = GPSWait;
+
+      updateGpsData(1000);
+      gpsDebug();
+
+      if ((gps.location.age() < 1000 || gps.location.isUpdated()) && 
+          gps.location.isValid()) {
         
-        //GpsOFF;
-        setGPS_PowerSaveMode();
-        //GpsFirstFix=true;
-    current_altitude = gps.altitude.feet();
-    if(current_altitude > max_altitude) {
-      max_altitude = current_altitude;
-    }
-    if(secsTillTx <= 0) {
+        if (gps.satellites.isValid() && 
+           (gps.satellites.value() > 3)) {
 
+          doAltCheck();
+          updateZone(); //updates BeaconWait
+          updateComment();
+          updatePosition();
+          updateTelemetry();
+          secsTillTx = BeaconWait;
+
+          //GpsOFF;
+          setGPS_PowerSaveMode();
+          //GpsFirstFix=true;
+          current_altitude = gps.altitude.feet();
+          if(current_altitude > max_altitude) {
+            max_altitude = current_altitude;
+          }
           if(autoPathSizeHighAlt && gps.altitude.feet() > 3000){
             //force to use high altitude settings (WIDE2-n)
             APRS_setPathSize(1);
@@ -198,35 +216,37 @@ void loop() {
           }
           
           //send status message every 5 minutes
-          if((gps.time.minute() % 5) == 0){               
+          if((gps.time.minute() % 5) == 0) {               
             sendStatus();       
           } else {
             sendLocation();
           }
-          // refill timer
-          secsTillTx = BeaconWait;
 
           freeMem();
           Serial.flush();
-    }
-    } // if time to tx
+        } // if time to tx
         // sleepSeconds(BeaconWait-((millis-loop_start)/1000));
-
       } else {
 #if defined(DEVMODE)
-      Serial.println(F("Not enough sattelites"));
+      Serial.println(F("Not enough satelites"));
 #endif
       }
     }
-    secsTillTx--;
-    secsTillTx -= (millis()-loop_start)/1000;
+
+    secsTillTx -= round((millis()-loop_start)/1000);
+    Serial.println("secsTillTx->");
+    Serial.println(secsTillTx);
+    Serial.println((millis()-loop_start)/1000);
   } else {
     secsToCheckBatt--;
 
     secsToCheckBatt -= (millis()-loop_start)/1000;
     // sleepSeconds(BattWait-((millis-loop_start)/1000));
   }
-  sleepSeconds(1);
+  // Serial.println("Loop time in milliseconds->");
+  // Serial.println(round((millis()-loop_start)/1000));
+  sleepSeconds(secsTillTx);
+  secsTillTx = 0;
 }
 
 
@@ -241,121 +261,90 @@ void doAltCheck() {
   if (balloonDescendRepeat >= numDescendChecks) {
     balloonPopped = true;
   }
-  
 }
-void updateTiming() {
-  long alt = gps.altitude.feet();
-  if (balloonPopped) {
-    if (SectADown[1] <= alt < SectBDown[1]) {
-      currentSect = 'A';
-      BeaconWait = SectADown[0];
-      
-    }
-    else if (SectBDown[1] <= alt < SectCDown[1]) {
-      currentSect = 'B';
-      BeaconWait = SectBDown[0];
-      
-    }
-    else if (SectCDown[1] <= alt < SectDDown[1]) {
-      currentSect = 'C';
-      BeaconWait = SectCDown[0];
-      
-    }
-    else {
-      currentSect = 'D';
-      BeaconWait = SectDDown[0];
-      
-    }
-  } 
-  else {
-    if (SectAUp[1] >= alt > SectBUp[1]) {
-      currentSect = 'A';
-      BeaconWait = SectAUp[0];
-      
-    }
-    else if (SectBUp[1] >= alt > SectCUp[1]) {
-      currentSect = 'B';
-      BeaconWait = SectBUp[0];
-      
-    }
-    else if (SectCUp[1] >= alt > SectDUp[1]) {
-      currentSect = 'C';
-      BeaconWait = SectCUp[0];
-      
-    }
-    else {
-      currentSect = 'D';
-      BeaconWait = SectDUp[0];
-      
-    }
+void updateZone() {
+  long alt = 40000; //gps.altitude.feet();
+  for (int i=0; i < NUM_ZONES; i++) {
+      if (zones[i].goingUp == true && balloonPopped == false) {
+        if (alt <= zones[i].altitude) {
+          currentSect = i;
+          BeaconWait = zones[i].secsForTx;
+
+        } else {
+          continue;
+        }
+      } else if (zones[i].goingUp == false && balloonPopped == true) {
+        
+          if (zones[i].altitude <= alt) {
+            currentSect = i;
+            BeaconWait = zones[i].secsForTx;
+          } else {
+          continue;
+          }
+      }
   }
+  
+
 }
 
 void updateComment() {
-  Adafruit_Si7021 i2c_tracker = Adafruit_Si7021();
-  comment[0] = 'U';
-  comment[1] = '/';
-  comment[2] = 'D';
-  comment[3] = ':';
-  comment[4] = ' ';
+  comment[0] = ' ';
+  comment[1] = 'U';
+  comment[2] = '/';
+  comment[3] = 'D';
+  comment[4] = ':';
+  comment[5] = ' ';
   if (gps.altitude.feet() > lastalt) {
-    comment[5] = '^';
+    comment[6] = '^';
   } else if (gps.altitude.feet() < lastalt) {
-    comment[5] = 'v';
+    comment[6] = 'v';
   } else {
-    comment[5] = '-';
+    comment[6] = '-';
   }
   lastalt = gps.altitude.feet();
-  comment[6] = ' ';
-  comment[7] = 'X';
-  comment[8] = 'H';
-  comment[9] = 'U';
-  comment[10] = ':';
-  comment[11] = ' ';
-  String humidity = ""; // to please compiler
-  if (!i2c_tracker.begin()) {
-    String humidity = "****"; 
-  } else {
-    String humidity = String(i2c_tracker.readHumidity());
-  }
-  sprintf(comment + 12,"%s", humidity.c_str());
-  comment[16] = '%';
-  comment[17] = ' ';
-  comment[18] = 'X';
-  comment[19] = 'T';
-  comment[20] = 'E';
-  comment[21] = 'M';
-  comment[22] = 'P';
-  comment[23] = ':';
-  comment[24] = ' ';
-  String temp = ""; // to please compiler
-  if (!i2c_tracker.begin()) {
-    temp = "*******"; 
-  } else {
-    temp = String(i2c_tracker.readTemperature());
-  }
-  sprintf(comment + 25, "%s", temp.c_str());
-  comment[32] = 'C';
-  comment[33] = ' ';
-  comment[34] = 'S';
-  comment[35] = 'E';
-  comment[36] = 'C';
-  comment[37] = 'T';
-  comment[38] = currentSect;
-  if (balloonPopped) {
-    comment[39] = ' ';
-    comment[40] = 'M';
-    comment[41] = 'X';
-    comment[42] = ':';
-    comment[43] = ' ';
-    sprintf(comment + 44, "%03d", (double) max_altitude);
-    
+  comment[7] = ' ';
+  comment[8] = 'X';
+  comment[9] = 'H';
+  comment[10] = 'U';
+  comment[11] = ':';
+  comment[12] = ' ';
 
-  }
+  sprintf(comment + 13, "%4s", 
+          i2c_tracker.begin() ? 
+          String(i2c_tracker.readHumidity()) : 
+          "Error");
+
+  comment[17] = '%';
+  comment[18] = ' ';
+  comment[19] = 'X';
+  comment[20] = 'T';
+  comment[21] = 'E';
+  comment[22] = 'M';
+  comment[23] = 'P';
+  comment[24] = ':';
+  comment[25] = ' ';
   
+
+  sprintf(comment + 26, "%7s", 
+          i2c_tracker.begin() ? 
+          String(i2c_tracker.readTemperature()) : 
+          "Error");
+
+  comment[33] = 'C';
+  if (balloonPopped) {
+    comment[34] = ' ';
+    comment[35] = 'M';
+    comment[36] = 'X';
+    comment[37] = ' ';
+    sprintf(comment + 38, "%03d", (double) max_altitude);
+  }
+#if defined(DEVMODE)
+  Serial.println(comment);
+#endif
 }
 
 // end smartPacket Functions
+
 
 
 void aprs_msg_callback(struct AX25Msg *msg) {
@@ -662,14 +651,13 @@ static void printFloat(float val, bool valid, int len, int prec)
   {
     Serial.print(val, prec);
     int vi = abs((int)val);
+    int flen = prec + (val < 0.0 ? 2 : 1); // . and -
+    flen += vi >= 1000 ? 4 : vi >= 100 ? 3 : vi >= 10 ? 2 : 1;
     for (int i = flen; i < len; ++i)
       Serial.print(' ');
-  }  int flen = prec + (val < 0.0 ? 2 : 1); // . and -
-    flen += vi >= 1000 ? 4 : vi >= 100 ? 3 : vi >= 10 ? 2 : 1;
-  
+  }
 #endif
 }
-
 static void printInt(unsigned long val, bool valid, int len)
 {
 #if defined(DEVMODE)
