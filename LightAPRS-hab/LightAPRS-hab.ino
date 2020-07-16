@@ -104,7 +104,7 @@ struct txZones zones[NUM_ZONES] = {
 
 
 
-unsigned int   GPSWait=10;  //seconds sleep if no GPS.
+unsigned int   GPSWait=0;  //seconds sleep if no GPS.
 unsigned int   BeaconWait=1;  //seconds sleep for next beacon (TX).
 unsigned int   BattWait=60;    //seconds sleep if super capacitors/batteries are below BattMin (important if power source is solar panel) 
 float BattMin=4.0;        // min Volts to wake up.
