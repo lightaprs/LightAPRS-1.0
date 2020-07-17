@@ -29,7 +29,7 @@
 #define AprsPinInput  pinMode(12,INPUT);pinMode(13,INPUT);pinMode(14,INPUT);pinMode(15,INPUT)
 #define AprsPinOutput pinMode(12,OUTPUT);pinMode(13,OUTPUT);pinMode(14,OUTPUT);pinMode(15,OUTPUT)
 
-#define DEVMODE // Development mode. Uncomment to enable for debugging.
+// #define DEVMODE // Development mode. Uncomment to enable for debugging.
 
 
 // begin prototypes
@@ -87,14 +87,14 @@ struct txZones {
 
 #define NUM_ZONES 8
 struct txZones zones[NUM_ZONES] = {
-  {1, 20000, true},
-  {1, 50000, true},
-  {1, 80000, true},
-  {1, 1000000, true},
-  {1, 80000, false},
-  {1, 50000, false},
-  {1, 20000, false},
-  {1,  0, false},
+  {60, 20000, true},
+  {60, 50000, true},
+  {30, 80000, true},
+  {15, 1000000, true},
+  {30, 80000, false},
+  {60, 50000, false},
+  {30, 20000, false},
+  {15,  0, false},
 };
 
 // end variables for smart_packet
@@ -247,7 +247,6 @@ void loop() {
           freeMem();
           Serial.flush();
         } // if time to tx
-        // sleepSeconds(BeaconWait-((millis-loop_start)/1000));
       } else {
 #if defined(DEVMODE)
       Serial.println(F("Not enough satelites"));
@@ -262,8 +261,6 @@ void loop() {
     secsToCheckBatt -= (millis()-loop_start)/1000;
     // sleepSeconds(BattWait-((millis-loop_start)/1000));
   }
-  // Serial.println("Loop time in milliseconds->");
-  // Serial.println(round((millis()-loop_start)/1000));
   sleepSeconds(secsTillTx);
   secsTillTx = 0;
 }
@@ -479,7 +476,6 @@ void updatePosition() {
 
 
 void updateTelemetry() {
-  
   sprintf(telemetry_buff, "%03d", gps.course.isValid() ? (int)gps.course.deg() : 0);
   telemetry_buff[3] += '/';
   sprintf(telemetry_buff + 4, "%03d", gps.speed.isValid() ? (int)gps.speed.knots() : 0);
@@ -507,7 +503,6 @@ void updateTelemetry() {
   sprintf(telemetry_buff + 50, "%02d", gps.satellites.isValid() ? (int)gps.satellites.value() : 0);
   telemetry_buff[52] = 'S';
   telemetry_buff[53] = ' ';
-  telemetry_buff[54] = 
   sprintf(telemetry_buff + 54, "%s", comment);
   
 
