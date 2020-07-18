@@ -105,6 +105,7 @@ struct txZones zones[NUM_ZONES] = {
 
 
 unsigned int   GPSWait=10;  //seconds sleep if no GPS.
+int loopNumber = 0; // Number of times the loop has been called.
 unsigned int   BeaconWait=1;  //seconds sleep for next beacon (TX).
 unsigned int   GPSPingWait=1; //seconds sleep for next alt test
 unsigned int   BattWait=60;    //seconds sleep if super capacitors/batteries are below BattMin (important if power source is solar panel) 
@@ -185,6 +186,12 @@ void loop() {
   float tempC;
   float pressure;
   float loop_start = millis();
+  loopNumber++;
+
+  #if defined(DEVMODE)
+    Serial.println("LoopNumber -> ");
+    Serial.println(loopNumber);
+  #endif
 
   wdt_reset();
 
