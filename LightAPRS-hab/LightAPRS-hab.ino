@@ -106,7 +106,7 @@ struct txZones zones[NUM_ZONES] = {
 
 unsigned int   GPSWait=10;  //seconds sleep if no GPS.
 unsigned int   BeaconWait=1;  //seconds sleep for next beacon (TX).
-unsigned int   GPSPingWait=1;
+unsigned int   GPSPingWait=1; //seconds sleep for next alt test
 unsigned int   BattWait=60;    //seconds sleep if super capacitors/batteries are below BattMin (important if power source is solar panel) 
 float BattMin=4.0;        // min Volts to wake up.
 float DraHighVolt=8.0;    // min Volts for radio module (DRA818V) to transmit (TX) 1 Watt, below this transmit 0.5 Watt. You don't need 1 watt on a balloon. Do not change this.
@@ -205,6 +205,9 @@ void loop() {
     }
 
     if(secsTillPing <= 0) {
+      #if defined(DEVMODE)
+        Serial.println(F("Pinging GPS for altitude"));
+      #endif
       current_altitude = gps.altitude.feet();
       if(current_altitude > max_altitude) {
         max_altitude = current_altitude;
@@ -262,6 +265,7 @@ void loop() {
     }
 
     secsTillTx -= round((millis()-loop_start)/1000);
+    secsTillPing -= round((millis()-loop_start)/1000);
   } else {
     secsToCheckBatt--;
 
