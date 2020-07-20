@@ -29,7 +29,7 @@
 #define AprsPinInput  pinMode(12,INPUT);pinMode(13,INPUT);pinMode(14,INPUT);pinMode(15,INPUT)
 #define AprsPinOutput pinMode(12,OUTPUT);pinMode(13,OUTPUT);pinMode(14,OUTPUT);pinMode(15,OUTPUT)
 
-// #define DEVMODE // Development mode. Uncomment to enable for debugging.
+ #define DEVMODE // Development mode. Uncomment to enable for debugging.
 
 
 // begin prototypes
@@ -64,6 +64,7 @@ bool alternateSymbolTable = false ; //false = '/' , true = '\'
 char Frequency[9]="144.3900"; //default frequency. 144.3900 for US, 144.8000 for Europe
 
 char comment[50] = "First Testing of Light APRS"; // Max 50 char
+char StatusMessage[50] = "Status Msg: "; 
 //*****************************************************************************
 // variables for smart_packet 
 Adafruit_Si7021 i2c_tracker = Adafruit_Si7021();
@@ -72,7 +73,7 @@ long current_altitude = 0;
 long max_altitude = 0;
 
 long lastalt = 0; // last updated altitude
-bool balloonPopped = true; // DO NOT CHANGE
+bool balloonPopped = false; // DO NOT CHANGE
 int balloonDescendRepeat = 0; // AGAIN, DO NOT CHANGE
 
 const int numDescendChecks = 5;
@@ -87,13 +88,13 @@ struct txZones {
 
 #define NUM_ZONES 8
 struct txZones zones[NUM_ZONES] = {
-  {60, 1, 20000, true},
-  {60, 1, 50000, true},
-  {30, 1, 80000, true},
+  {60, 60, 20000, true},
+  {60, 30, 50000, true},
+  {30, 15, 80000, true},
   {15, 1, 1000000, true},
   {30, 1, 80000, false},
-  {30, 1, 50000, false},
-  {60, 1, 20000, false},
+  {60, 1, 50000, false},
+  {30, 1, 20000, false},
   {15, 1,  0, false},
 };
 
@@ -194,7 +195,6 @@ void loop() {
   #endif
 
   wdt_reset();
-
   if (readBatt() > BattMin) {
     if(aliveStatus) {
       //send status tx on startup once (before gps fix)
@@ -263,7 +263,6 @@ void loop() {
           freeMem();
           Serial.flush();
         } // if time to tx
-        // sleepSeconds(BeaconWait-((millis-loop_start)/1000));
       } else {
 #if defined(DEVMODE)
       Serial.println(F("Not enough satelites"));
@@ -273,12 +272,17 @@ void loop() {
 
     secsTillTx -= round((millis()-loop_start)/1000);
     secsTillPing -= round((millis()-loop_start)/1000);
+    #if defined(DEVMODE)
+      Serial.println(round((millis()-loop_start)/1000));
+    #endif
   } else {
     secsToCheckBatt--;
 
     secsToCheckBatt -= (millis()-loop_start)/1000;
     // sleepSeconds(BattWait-((millis-loop_start)/1000));
   }
+  // Serial.println("Loop time in milliseconds->");
+  // Serial.println(round((millis()-loop_start)/1000));
   int sleepSecs;
   if (secsTillPing <= secsTillTx) {
     sleepSecs = secsTillPing;
@@ -370,8 +374,7 @@ void updateComment() {
   comment[25] = ' ';
   
 
-
-  sprintf(comment + 26, String(i2c_tracker.readTemperature()).c_str());
+  sprintf(comment + 26, "%7s", String(i2c_tracker.readTemperature()).c_str());
 
   comment[33] = 'C';
   if (balloonPopped) {
@@ -385,7 +388,6 @@ void updateComment() {
   Serial.println(comment);
 #endif
 }
-
 // end smartPacket Functions
 
 
