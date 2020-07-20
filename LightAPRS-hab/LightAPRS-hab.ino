@@ -29,7 +29,7 @@
 #define AprsPinInput  pinMode(12,INPUT);pinMode(13,INPUT);pinMode(14,INPUT);pinMode(15,INPUT)
 #define AprsPinOutput pinMode(12,OUTPUT);pinMode(13,OUTPUT);pinMode(14,OUTPUT);pinMode(15,OUTPUT)
 
- #define DEVMODE // Development mode. Uncomment to enable for debugging.
+// #define DEVMODE // Development mode. Uncomment to enable for debugging.
 
 
 // begin prototypes
@@ -63,7 +63,7 @@ bool alternateSymbolTable = false ; //false = '/' , true = '\'
 
 char Frequency[9]="144.3900"; //default frequency. 144.3900 for US, 144.8000 for Europe
 
-char comment[50] = "First Testing of Light APRS"; // Max 50 char
+char comment[50]; // Max 50 char
 char StatusMessage[50] = "Status Msg: "; 
 //*****************************************************************************
 // variables for smart_packet 
@@ -117,7 +117,6 @@ int secsTillTx = BeaconWait; // Countdown
 int secsTillPing = GPSPingWait;
 float last_tx_millis = 0;
 
-int secsToCheckBatt = BattWait; // Also Countdown
 boolean aliveStatus = true; //for tx status message on first wake-up just once.
 
 //do not change WIDE path settings below if you don't know what you are doing :) 
@@ -189,12 +188,6 @@ void loop() {
   float loop_start = millis();
   int sleepSecs;
   loopNumber++;
-
-  #if defined(DEVMODE)
-    Serial.println("LoopNumber -> ");
-    Serial.println(loopNumber);
-  #endif
-
   wdt_reset();
   if (readBatt() > BattMin) {
     if(aliveStatus) {
@@ -213,9 +206,6 @@ void loop() {
     }
 
     if(secsTillPing <= 0) {
-      #if defined(DEVMODE)
-        Serial.println(F("Pinging GPS for altitude"));
-      #endif
       current_altitude = gps.altitude.feet();
       if(current_altitude > max_altitude) {
         max_altitude = current_altitude;
@@ -259,7 +249,7 @@ void loop() {
             sendStatus();       
           } else {
             sendLocation();
-          }
+          } 
 
           freeMem();
           Serial.flush();
@@ -268,19 +258,19 @@ void loop() {
 #if defined(DEVMODE)
       Serial.println(F("Not enough satelites"));
 #endif
+      if((gps.time.minute() % 15) == 0) {               
+        sendStatus();       
       }
     }
-
+  } else {    
     secsTillTx -= round((millis()-loop_start)/1000);
     secsTillPing -= round((millis()-loop_start)/1000);
     #if defined(DEVMODE)
       Serial.println(round((millis()-loop_start)/1000));
     #endif
   } else {
-    secsToCheckBatt--;
-
-    secsToCheckBatt -= (millis()-loop_start)/1000;
-    // sleepSeconds(BattWait-((millis-loop_start)/1000));
+      secsTillTx = BattWait;
+      secsTillTx -= round((millis()-loop_start)/1000);
   }
   // Serial.println("Loop time in milliseconds->");
   // Serial.println(round((millis()-loop_start)/1000));
