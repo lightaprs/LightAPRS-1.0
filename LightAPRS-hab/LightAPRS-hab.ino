@@ -5,6 +5,7 @@
 #include <Wire.h>
 #include <Adafruit_BMP085.h>//https://github.com/adafruit/Adafruit-BMP085-Library
 #include <avr/wdt.h>
+#include "Adafruit_Si7021.h"
 
 #define RfPDPin     19
 #define GpsVccPin   18
@@ -28,7 +29,31 @@
 #define AprsPinInput  pinMode(12,INPUT);pinMode(13,INPUT);pinMode(14,INPUT);pinMode(15,INPUT)
 #define AprsPinOutput pinMode(12,OUTPUT);pinMode(13,OUTPUT);pinMode(14,OUTPUT);pinMode(15,OUTPUT)
 
-//#define DEVMODE // Development mode. Uncomment to enable for debugging.
+// #define DEVMODE // Development mode. Uncomment to enable for debugging.
+
+
+// begin prototypes
+byte configDra818(char *freq);
+float readBatt();
+void sendStatus();
+static void updateGpsData(int ms);
+void gpsDebug();
+void updateComment();
+void updatePosition();
+void updateTelemetry();
+void setGPS_PowerSaveMode();
+void sendLocation();
+void freeMem();
+void sleepSeconds(int sec);
+void doAltCheck();
+void updateZone();
+void setGPS_DynamicModel6();
+static void printInt(unsigned long val, bool valid, int len);
+static void printFloat(float val, bool valid, int len, int prec);
+static void printDateTime(TinyGPSDate &d, TinyGPSTime &t);
+static void printStr(const char *str, int len);
+void sendUBX(uint8_t *MSG, uint8_t len);
+boolean getUBX_ACK(uint8_t *MSG);
 
 //****************************************************************************
 char  CallSign[7]="KD4BFP"; //DO NOT FORGET TO CHANGE YOUR CALLSIGN
@@ -39,16 +64,56 @@ bool alternateSymbolTable = false ; //false = '/' , true = '\'
 char Frequency[9]="144.3900"; //default frequency. 144.3900 for US, 144.8000 for Europe
 
 char comment[50] = "First Testing of Light APRS"; // Max 50 char
-char StatusMessage[50] = "This is a BrightLinks Status Msg"; 
+char StatusMessage[50] = "Status Msg: "; 
 //*****************************************************************************
+// variables for smart_packet 
+Adafruit_Si7021 i2c_tracker = Adafruit_Si7021();
+
+long current_altitude = 0;
+long max_altitude = 0;
+
+long lastalt = 0; // last updated altitude
+bool balloonPopped = false; // DO NOT CHANGE
+int balloonDescendRepeat = 0; // AGAIN, DO NOT CHANGE
+
+const int numDescendChecks = 5;
+int currentSect = 0;
+
+struct txZones {
+  long secsForTx;
+  long altitude;
+  bool goingUp;
+};
+
+#define NUM_ZONES 8
+struct txZones zones[NUM_ZONES] = {
+  {60, 20000, true},
+  {60, 50000, true},
+  {30, 80000, true},
+  {15, 1000000, true},
+  {30, 80000, false},
+  {60, 50000, false},
+  {30, 20000, false},
+  {15,  0, false},
+};
+
+// end variables for smart_packet
 
 
-unsigned int   BeaconWait=42;  //seconds sleep for next beacon (TX).
+
+
+
+
+unsigned int   GPSWait=0;  //seconds sleep if no GPS.
+unsigned int   BeaconWait=1;  //seconds sleep for next beacon (TX).
 unsigned int   BattWait=60;    //seconds sleep if super capacitors/batteries are below BattMin (important if power source is solar panel) 
 float BattMin=4.0;        // min Volts to wake up.
 float DraHighVolt=8.0;    // min Volts for radio module (DRA818V) to transmit (TX) 1 Watt, below this transmit 0.5 Watt. You don't need 1 watt on a balloon. Do not change this.
-//float GpsMinVolt=4.0; //min Volts for GPS to wake up. (important if power source is solar panel) 
+//float GpsMinVolt=4.0; //min Volts for GPS to wake up. (important if power source is solar panel)
+int secsTillTx = BeaconWait; // Countdown
+float last_tx_millis = 0;
 
+int secsToCheckBatt = BattWait; // Also Countdown
 boolean aliveStatus = true; //for tx status message on first wake-up just once.
 
 //do not change WIDE path settings below if you don't know what you are doing :) 
@@ -106,7 +171,7 @@ void setup() {
   APRS_useAlternateSymbolTable(alternateSymbolTable); 
   APRS_setSymbol(Symbol);
   //increase following value (for example to 500UL) if you experience packet loss/decode issues. 
-  APRS_setPreamble(350UL);  
+  APRS_setPreamble(500UL);  
   APRS_setPathSize(pathSize);
 
   configDra818(Frequency);
@@ -114,81 +179,189 @@ void setup() {
   bmp.begin();
  
 }
-
 void loop() {
   float tempC;
   float pressure;
-   wdt_reset();
-  
-  if (readBatt() > BattMin) {
-  
-  if(aliveStatus){
+  float loop_start = millis();
 
+  wdt_reset();
+
+  if (readBatt() > BattMin) {
+    if(aliveStatus) {
       //send status tx on startup once (before gps fix)
-      
       #if defined(DEVMODE)
         Serial.println(F("Sending"));
       #endif
+      
       sendStatus();
+      
       #if defined(DEVMODE)
         Serial.println(F("Sent"));
       #endif
-      
+
       aliveStatus = false;
-      
-   }
-    
-    updateGpsData(1000);
-    gpsDebug();
+    }
 
-    //debug for cjr
-    //sendStatus();
-    tempC = bmp.readTemperature();
-    pressure = bmp.readPressure();
+    if(secsTillTx <= 0) {
+      last_tx_millis = millis();
+      secsTillTx = GPSWait;
 
-    if ((gps.location.age() < 1000 || gps.location.isUpdated()) && gps.location.isValid()) {
-      if (gps.satellites.isValid() && (gps.satellites.value() > 3)) {
-      updatePosition();
-      updateTelemetry();
-      
-      //GpsOFF;
-      setGPS_PowerSaveMode();
-      //GpsFirstFix=true;
+      updateGpsData(1000);
+      gpsDebug();
 
-      if(autoPathSizeHighAlt && gps.altitude.feet()>3000){
+      if ((gps.location.age() < 1000 || gps.location.isUpdated()) && 
+          gps.location.isValid()) {
+        
+        if (gps.satellites.isValid() && 
+           gps.satellites.value() > 3) {
+
+          doAltCheck();
+          updateZone(); //updates BeaconWait
+          updateComment();
+          updatePosition();
+          updateTelemetry();
+          secsTillTx = BeaconWait;
+
+          //GpsOFF;
+          setGPS_PowerSaveMode();
+          //GpsFirstFix=true;
+          current_altitude = gps.altitude.feet();
+          if(current_altitude > max_altitude) {
+            max_altitude = current_altitude;
+          }
+          if(autoPathSizeHighAlt && gps.altitude.feet() > 3000){
             //force to use high altitude settings (WIDE2-n)
             APRS_setPathSize(1);
-        } else {
+          } else {
             //use defualt settings  
             APRS_setPathSize(pathSize);
-        }
-      
-      //send status message every 60 minutes
-      if(gps.time.minute() == 30){               
-        sendStatus();       
-      } else {
+          }
+          
+          //send status message every 15 minutes
+          if((gps.time.minute() % 15) == 0) {               
+            sendStatus();       
+          } else {
+            sendLocation();
+          }
 
-         sendLocation();
-
-      }
-
-      freeMem();
-      Serial.flush();
-      sleepSeconds(BeaconWait);
-
+          freeMem();
+          Serial.flush();
+        } // if time to tx
       } else {
 #if defined(DEVMODE)
-      Serial.println(F("Not enough sattelites"));
+      Serial.println(F("Not enough satelites"));
 #endif
       }
-    } 
-  } else {
+    }
 
-    sleepSeconds(BattWait);
-    
+    secsTillTx -= round((millis()-loop_start)/1000);
+  } else {
+    secsToCheckBatt--;
+
+    secsToCheckBatt -= (millis()-loop_start)/1000;
+    // sleepSeconds(BattWait-((millis-loop_start)/1000));
+  }
+  sleepSeconds(secsTillTx);
+  secsTillTx = 0;
+}
+
+
+
+// Begin smartPacket Functions
+void doAltCheck() {
+  if (gps.altitude.feet() <= lastalt) {
+    balloonDescendRepeat ++;
+  } else {
+    balloonDescendRepeat = 0;
+  }
+  if (balloonDescendRepeat >= numDescendChecks) {
+    balloonPopped = true;
+  }
+}
+void updateZone() {
+  
+  long a = gps.altitude.feet();
+  
+  for (int i=0; i < NUM_ZONES; i++) {
+      if (zones[i].goingUp == true && balloonPopped == false) {
+        if (a <= zones[i].altitude) {
+          
+          currentSect = i;
+          BeaconWait = zones[i].secsForTx;
+          return;
+
+        } else {
+          continue;
+        }
+      } else if (zones[i].goingUp == false && balloonPopped == true) {
+        
+          if (zones[i].altitude <= a) {
+            currentSect = i;
+            BeaconWait = zones[i].secsForTx;
+
+            return;
+          } else {
+          continue;
+          }
+      }
   }
   
+
 }
+
+void updateComment() {
+  comment[0] = ' ';
+  comment[1] = 'U';
+  comment[2] = '/';
+  comment[3] = 'D';
+  comment[4] = ':';
+  comment[5] = ' ';
+  if (gps.altitude.feet() > lastalt) {
+    comment[6] = '^';
+  } else if (gps.altitude.feet() < lastalt) {
+    comment[6] = 'v';
+  } else {
+    comment[6] = '-';
+  }
+  lastalt = gps.altitude.feet();
+  comment[7] = ' ';
+  comment[8] = 'X';
+  comment[9] = 'H';
+  comment[10] = 'U';
+  comment[11] = ':';
+  comment[12] = ' ';
+
+  sprintf(comment + 13, String(i2c_tracker.readHumidity()).c_str());
+
+  comment[17] = '%';
+  comment[18] = ' ';
+  comment[19] = 'X';
+  comment[20] = 'T';
+  comment[21] = 'E';
+  comment[22] = 'M';
+  comment[23] = 'P';
+  comment[24] = ':';
+  comment[25] = ' ';
+  
+
+  sprintf(comment + 26, "%7s", String(i2c_tracker.readTemperature()).c_str());
+
+  comment[33] = 'C';
+  if (balloonPopped) {
+    comment[34] = ' ';
+    comment[35] = 'M';
+    comment[36] = 'X';
+    comment[37] = ' ';
+    sprintf(comment + 38, "%03d", (double) max_altitude);
+  }
+#if defined(DEVMODE)
+  Serial.println(comment);
+#endif
+}
+
+// end smartPacket Functions
+
+
 
 void aprs_msg_callback(struct AX25Msg *msg) {
   //do not remove this function, necessary for LibAPRS
@@ -237,6 +410,8 @@ byte configDra818(char *freq)
 #endif
   return (ack[0] == 0x30) ? 1 : 0;
 }
+
+
 
 void updatePosition() {
   // Convert and set latitude NMEA string Degree Minute Hundreths of minutes ddmm.hh[S,N].
@@ -301,7 +476,6 @@ void updatePosition() {
 
 
 void updateTelemetry() {
- 
   sprintf(telemetry_buff, "%03d", gps.course.isValid() ? (int)gps.course.deg() : 0);
   telemetry_buff[3] += '/';
   sprintf(telemetry_buff + 4, "%03d", gps.speed.isValid() ? (int)gps.speed.knots() : 0);
@@ -498,7 +672,6 @@ static void printFloat(float val, bool valid, int len, int prec)
   }
 #endif
 }
-
 static void printInt(unsigned long val, bool valid, int len)
 {
 #if defined(DEVMODE)
