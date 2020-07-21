@@ -328,6 +328,7 @@ void updateZone() {
           if (zones[i].altitude <= a) {
             currentSect = i;
             BeaconWait = zones[i].secsForTx;
+            GPSPingWait = zones[i].secsForGPS;
 
             return;
           } else {
