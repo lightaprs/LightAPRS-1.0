@@ -187,6 +187,7 @@ void loop() {
   float tempC;
   float pressure;
   float loop_start = millis();
+  int sleepSecs;
   loopNumber++;
 
   #if defined(DEVMODE)
@@ -283,7 +284,6 @@ void loop() {
   }
   // Serial.println("Loop time in milliseconds->");
   // Serial.println(round((millis()-loop_start)/1000));
-  int sleepSecs;
   if (secsTillPing <= secsTillTx) {
     sleepSecs = secsTillPing;
   } else {
