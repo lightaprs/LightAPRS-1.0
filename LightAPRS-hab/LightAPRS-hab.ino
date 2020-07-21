@@ -290,8 +290,13 @@ void loop() {
     sleepSecs = secsTillTx;
   }
   sleepSeconds(sleepSecs);
-  secsTillTx -= secsTillPing;
-  secsTillPing = 0;
+  if (secsTillPing <= secsTillTx) {
+    secsTillTx -= secsTillPing;
+    secsTillPing = 0;
+  } else {
+    secsTillPing -= secsTillTx;
+    secsTillTx = 0;
+  }
 }
 
 
