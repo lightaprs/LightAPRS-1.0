@@ -286,17 +286,14 @@ void loop() {
   // Serial.println(round((millis()-loop_start)/1000));
   if (secsTillPing <= secsTillTx) {
     sleepSecs = secsTillPing;
-  } else {
-    sleepSecs = secsTillTx;
-  }
-  sleepSeconds(sleepSecs);
-  if (secsTillPing <= secsTillTx) {
     secsTillTx -= secsTillPing;
     secsTillPing = 0;
   } else {
+    sleepSecs = secsTillTx;
     secsTillPing -= secsTillTx;
     secsTillTx = 0;
   }
+  sleepSeconds(sleepSecs);
 }
 
 
