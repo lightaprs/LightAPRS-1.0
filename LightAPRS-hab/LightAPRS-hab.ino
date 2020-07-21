@@ -29,7 +29,7 @@
 #define AprsPinInput  pinMode(12,INPUT);pinMode(13,INPUT);pinMode(14,INPUT);pinMode(15,INPUT)
 #define AprsPinOutput pinMode(12,OUTPUT);pinMode(13,OUTPUT);pinMode(14,OUTPUT);pinMode(15,OUTPUT)
 
-// #define DEVMODE // Development mode. Uncomment to enable for debugging.
+ #define DEVMODE // Development mode. Uncomment to enable for debugging.
 
 
 // begin prototypes
@@ -81,20 +81,21 @@ int currentSect = 0;
 
 struct txZones {
   long secsForTx;
+  long secsForGPS;
   long altitude;
   bool goingUp;
 };
 
 #define NUM_ZONES 8
 struct txZones zones[NUM_ZONES] = {
-  {60, 20000, true},
-  {60, 50000, true},
-  {30, 80000, true},
-  {15, 1000000, true},
-  {30, 80000, false},
-  {60, 50000, false},
-  {30, 20000, false},
-  {15,  0, false},
+  {60, 60, 20000, true},
+  {60, 30, 50000, true},
+  {30, 15, 80000, true},
+  {15, 1, 1000000, true},
+  {30, 15, 80000, false},
+  {60, 30, 50000, false},
+  {30, 15, 20000, false},
+  {15, 5,  0, false},
 };
 
 // end variables for smart_packet
@@ -104,13 +105,16 @@ struct txZones zones[NUM_ZONES] = {
 
 
 
-unsigned int   GPSWait=0;  //seconds sleep if no GPS.
+unsigned int   GPSWait=10;  //seconds sleep if no GPS.
+long loopNumber = 0; // Number of times the loop has been called.
 unsigned int   BeaconWait=1;  //seconds sleep for next beacon (TX).
+unsigned int   GPSPingWait=1; //seconds sleep for next alt test
 unsigned int   BattWait=60;    //seconds sleep if super capacitors/batteries are below BattMin (important if power source is solar panel) 
 float BattMin=4.0;        // min Volts to wake up.
 float DraHighVolt=8.0;    // min Volts for radio module (DRA818V) to transmit (TX) 1 Watt, below this transmit 0.5 Watt. You don't need 1 watt on a balloon. Do not change this.
 //float GpsMinVolt=4.0; //min Volts for GPS to wake up. (important if power source is solar panel)
 int secsTillTx = BeaconWait; // Countdown
+int secsTillPing = GPSPingWait;
 float last_tx_millis = 0;
 
 int secsToCheckBatt = BattWait; // Also Countdown
@@ -183,9 +187,14 @@ void loop() {
   float tempC;
   float pressure;
   float loop_start = millis();
+  loopNumber++;
+
+  #if defined(DEVMODE)
+    Serial.println("LoopNumber -> ");
+    Serial.println(loopNumber);
+  #endif
 
   wdt_reset();
-
   if (readBatt() > BattMin) {
     if(aliveStatus) {
       //send status tx on startup once (before gps fix)
@@ -200,6 +209,17 @@ void loop() {
       #endif
 
       aliveStatus = false;
+    }
+
+    if(secsTillPing <= 0) {
+      #if defined(DEVMODE)
+        Serial.println(F("Pinging GPS for altitude"));
+      #endif
+      current_altitude = gps.altitude.feet();
+      if(current_altitude > max_altitude) {
+        max_altitude = current_altitude;
+      }
+      secsTillPing = GPSPingWait;
     }
 
     if(secsTillTx <= 0) {
@@ -225,10 +245,6 @@ void loop() {
           //GpsOFF;
           setGPS_PowerSaveMode();
           //GpsFirstFix=true;
-          current_altitude = gps.altitude.feet();
-          if(current_altitude > max_altitude) {
-            max_altitude = current_altitude;
-          }
           if(autoPathSizeHighAlt && gps.altitude.feet() > 3000){
             //force to use high altitude settings (WIDE2-n)
             APRS_setPathSize(1);
@@ -255,14 +271,27 @@ void loop() {
     }
 
     secsTillTx -= round((millis()-loop_start)/1000);
+    secsTillPing -= round((millis()-loop_start)/1000);
+    #if defined(DEVMODE)
+      Serial.println(round((millis()-loop_start)/1000));
+    #endif
   } else {
     secsToCheckBatt--;
 
     secsToCheckBatt -= (millis()-loop_start)/1000;
     // sleepSeconds(BattWait-((millis-loop_start)/1000));
   }
-  sleepSeconds(secsTillTx);
-  secsTillTx = 0;
+  // Serial.println("Loop time in milliseconds->");
+  // Serial.println(round((millis()-loop_start)/1000));
+  int sleepSecs;
+  if (secsTillPing <= secsTillTx) {
+    sleepSecs = secsTillPing;
+  } else {
+    sleepSecs = secsTillTx;
+  }
+  sleepSeconds(sleepSecs);
+  secsTillTx -= secsTillPing;
+  secsTillPing = 0;
 }
 
 
@@ -288,6 +317,7 @@ void updateZone() {
           
           currentSect = i;
           BeaconWait = zones[i].secsForTx;
+          GPSPingWait = zones[i].secsForGPS;
           return;
 
         } else {
@@ -358,7 +388,6 @@ void updateComment() {
   Serial.println(comment);
 #endif
 }
-
 // end smartPacket Functions
 
 
@@ -558,7 +587,7 @@ void sendStatus() {
   delay(2000);
   RfPttON;
   delay(1000);
-  sprintf(StatusMessage, "txCnt %03d satCnt %02d alt %06ul", TxCount, (int)gps.satellites.value(), (long)gps.altitude.feet());
+  sprintf(StatusMessage, "loopNmb %03ul txCnt %03d satCnt %02d alt %06ul", loopNumber, TxCount, (int)gps.satellites.value(), (long)gps.altitude.feet());
 
   APRS_sendStatus(StatusMessage, strlen(StatusMessage));
 
