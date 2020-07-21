@@ -347,7 +347,7 @@ void updateComment() {
     sprintf(comment, " U/D: %c XHU: %04s%% XTEMP: %07sC", going, String(i2c_tracker.readHumidity()).c_str(), String(i2c_tracker.readTemperature()).c_str());
     
   } else {
-    sprintf(comment, " U/D: %c XHU: %04s%% XTEMP: %07sC MX %d", going, String(i2c_tracker.readHumidity()).c_str(), String(i2c_tracker.readTemperature()).c_str(), max_altitude);
+    sprintf(comment, " U/D: %c XHU: %04s%% XTEMP: %07sC MX: %d", going, String(i2c_tracker.readHumidity()).c_str(), String(i2c_tracker.readTemperature()).c_str(), max_altitude);
   }
   
 #if defined(DEVMODE)
