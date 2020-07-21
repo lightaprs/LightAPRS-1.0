@@ -1,6 +1,6 @@
 # LightAPRS Tracker
 
-LightAPRS is one of the affordable, smallest, lightest, powerful and open source APRS trackers available. It makes tracking pico balloons, weather balloons, model rockets, RC aircraft, and anything else that flies simple and easy. 
+LightAPRS is one of the most affordable, smallest, lightest, powerful and open source APRS trackers available. It makes tracking pico balloons, weather balloons, model rockets, RC aircraft, and anything else that flies simple and easy. 
 It is able to report location, altitude, temperature and pressure to the internet ([APRS-IS](http://status.aprs2.net)) or direct to an amateur radio once a minute with a solar panel/super capacitors or just 4xAAA batteries. 
 Because LightAPRS is open source you can add your own custom sensors via I2C/SPI pins.
 
@@ -8,7 +8,7 @@ LightAPRS is available on http://www.qrp-labs.com/lightaprs.html for order. If y
 
 <img src="images/lightaprs-pinout.jpg" width="600">
 
-**Important :** LightAPRS uses the amateur 2 meter radio band which requires an amateur radio license to operate.
+**Important :** LightAPRS uses the amateur 2 meter radio band which requires an [amateur radio license](http://www.arrl.org/getting-licensed) to operate.
  
 ## Basic Features
  
@@ -55,7 +55,7 @@ Don't worry, it's really easy. Just download the following driver from sparkfun.
 
 ### 2.Install Arduino IDE
 
-Download and install [Arduino IDE](https://www.arduino.cc/en/Main/Software). If you have already installed Arduino, please check for updates. Its version should be at least v1.8.7 or newer.
+Download and install [Arduino IDE](https://www.arduino.cc/en/Main/Software). If you have already installed Arduino, please check for updates. Its version should be v1.8.7 or newer.
 
 ### 3.Install MightyCore
 
@@ -66,7 +66,7 @@ Download and install [Arduino IDE](https://www.arduino.cc/en/Main/Software). If 
 - Separate the URLs using a comma ( , ) if you have more than one URL
 - Open the **Tools > Board > Boards Manager...** menu item. [[Screenshot]](images/arduino-tools-boards-manager.png)
 - Wait for the platform indexes to finish downloading.
-- Type "MightyCore" in search bar until you see the **MightyCore** entry and click on it. <img src="images/arduino-boards-manager-mightycore-install.png">
+- Type "MightyCore" in the search bar until you see the **MightyCore** entry and click on it. <img src="images/arduino-boards-manager-mightycore-install.png">
 - Click **Install** .
 - After installation is complete, close the **Boards Manager** window.
 
@@ -76,7 +76,7 @@ Download and install [Arduino IDE](https://www.arduino.cc/en/Main/Software). If 
 - After selecting **ATMega1284** you will see new options under **Tools** menu. Select these options as follows:
 - Clock: 8 MHz external
 - BOD: 2.7v
-- Pinout: Standart
+- Pinout: Standard
 - Variant: 1284P
 - Compiler LTO : Disabled 
 <img src="images/lightaprs-mightycore-settings.png" width="300">
@@ -95,7 +95,7 @@ You are almost ready to programme LightAPRS Tracker :)
 
 ### 6.Upload
 
-- First attach an antenna (at least 50cm monopole wire) to your tracker. Radio module may be damaged when not attaching an antenna, since power has nowhere to go. 
+- First attach an antenna (at least 50cm monopole wire) to your tracker. Radio module may be damaged if operated without attaching an antenna, since power has nowhere to go. 
 - Connect LightAPRS Tracker to your computer with micro USB cable. 
 - If you have succesfully installed CH340G driver explained in the first step, you should see a COM port under **Tools->Port** menu item. Select that port. 
 
@@ -122,7 +122,7 @@ A. No you don't. Since pico balloons are very small and light, you are FAA 101 e
 
 **Q. What kind of antenna do i need to use on LightAPRS?**
 
-A. You can use any type. For airborne projects (such as balloons, rockets, rc planes, drones, etc.) we suggest quarter wave monopole antenna becuase this makes your payload lighter. So just cut a light 50 cm. wire and solder it to antenna footprint (A1) Since your payload is airborn and wavelenght is 2 meters, you don't need a wire for ground.
+A. You can use any type. For airborne projects (such as balloons, rockets, rc planes, drones, etc.) we suggest quarter wave monopole antenna becuase this makes your payload lighter. So just cut a light 50 cm. wire and solder it to the middle pad of antenna footprint (A1). Since your payload is airborne and wavelength is 2 meters, you don't need a wire for ground.
 
 <img src="images/lightaprs-monopole-wire-antenna-connection.jpg" width="600">
 
@@ -132,12 +132,12 @@ A. Yes. But you need a pcb type SMA connector (male or female) as follows:
 
 <img src="images/lightaprs-sma-antenna-connection.jpg" width="600">
 
-**Q. I would like to use it as a car tracker is it possible to use an external antenna?**
+**Q. I would like to use it as a car tracker.  Is it possible to use an external antenna?**
 
-A. Yes. But you also need a "n" type connector (n to SMA) along with the SMA connector as follows:
+A. Yes. But you also need an "n" type connector (n to SMA) along with the SMA connector as follows:
 
 <img src="images/sma-to-type-n-connector.jpg" width="600">
 
-We have tested it with Midland NW-2000 and worked fine :)
+We have tested it with Midland NW-2000 and it worked fine :)
 
 <img src="images/lightaprs-external-antenna-connection.jpg" width="600">
