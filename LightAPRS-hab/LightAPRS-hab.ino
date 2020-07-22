@@ -269,6 +269,7 @@ void loop() {
     #if defined(DEVMODE)
       Serial.println(round((millis()-loop_start)/1000));
     #endif
+  }
   } else {
       secsTillTx = BattWait;
       secsTillTx -= round((millis()-loop_start)/1000);
