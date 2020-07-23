@@ -54,6 +54,7 @@ static void printDateTime(TinyGPSDate &d, TinyGPSTime &t);
 static void printStr(const char *str, int len);
 void sendUBX(uint8_t *MSG, uint8_t len);
 boolean getUBX_ACK(uint8_t *MSG);
+long realMillis();
 
 //****************************************************************************
 char  CallSign[7]="KD4BFP"; //DO NOT FORGET TO CHANGE YOUR CALLSIGN
@@ -117,7 +118,7 @@ float DraHighVolt=8.0;    // min Volts for radio module (DRA818V) to transmit (T
 int secsTillTx = BeaconWait; // Countdown
 int secsTillPing = GPSPingWait;
 float last_tx_millis = 0;
-long realMillis = 0;
+long sleptSecs;
 boolean aliveStatus = true; //for tx status message on first wake-up just once.
 
 //do not change WIDE path settings below if you don't know what you are doing :) 
@@ -186,7 +187,7 @@ void setup() {
 void loop() {
   float tempC;
   float pressure;
-  float loop_start = millis();
+  float loop_start = realMillis();
   int sleepSecs;
   loopNumber++;
   wdt_reset();
@@ -219,8 +220,8 @@ void loop() {
     }
 
     if(secsTillTx <= 0) {
-      Serial.println("last_tx_millis and Time since last tx: " +  String(last_tx_millis) + " " + String(millis()-last_tx_millis)); // TODO: REMOVE
-      last_tx_millis = millis();
+      Serial.println("last_tx_millis and Time since last tx: " +  String(last_tx_millis) + " " + String(realMillis()-last_tx_millis)); // TODO: REMOVE
+      last_tx_millis = realMillis();
       secsTillTx = GPSWait;
 
       updateGpsData(1000);
@@ -267,12 +268,12 @@ void loop() {
       }
     }
   } else {    
-    secsTillTx -= round((millis()-loop_start)/1000);
-    secsTillPing -= round((millis()-loop_start)/1000);
+    secsTillTx -= round((realMillis()-loop_start)/1000);
+    secsTillPing -= round((realMillis()-loop_start)/1000);
   }
   } else {
       secsTillTx = BattWait;
-      secsTillTx -= round((millis()-loop_start)/1000);
+      secsTillTx -= round((realMillis()-loop_start)/1000);
   }
   // Serial.println("Loop time in milliseconds->");
   // Serial.println(round((millis()-loop_start)/1000));
@@ -286,11 +287,15 @@ void loop() {
     secsTillTx = 0;
   }
   Serial.println("sleepSecs: " + String(sleepSecs));
-  Serial.println("B4 SLP: "+String(millis()));
+  Serial.println("B4 SLP: "+String(realMillis()));
   sleepSeconds(sleepSecs);
-  Serial.println("AFDUR SLP: "+String(millis()));
-  realMillis += loop_start - millis() +  
+  Serial.println("AFDUR SLP: "+String(realMillis())); 
   
+}
+
+//For keeping track of time
+long realMillis() {
+  return millis() + sleptSecs;
 }
 
 
@@ -375,6 +380,7 @@ void sleepSeconds(int sec) {
   RfPttOFF;
   Serial.flush();
   wdt_disable();
+  sleptSecs += sec * 1000;
   for (int i = 0; i < sec; i++) {
     //if(readBatt() < GpsMinVolt) GpsOFF;  //(for pico balloon only)
     LowPower.powerDown(SLEEP_1S, ADC_OFF, BOD_ON);   
@@ -591,7 +597,7 @@ static void updateGpsData(int ms)
   while (!Serial1) {
     delayMicroseconds(1); // wait for serial port to connect.
   }
-    unsigned long start = millis();
+    unsigned long start = realMillis();
     unsigned long bekle=0;
     do
     {
@@ -599,10 +605,10 @@ static void updateGpsData(int ms)
         char c;
         c=Serial1.read();
         gps.encode(c);
-        bekle= millis();
+        bekle= realMillis();
       }
-      if (bekle!=0 && bekle+10<millis())break;
-    } while (millis() - start < ms);
+      if (bekle!=0 && bekle+10<realMillis())break;
+    } while (realMillis() - start < ms);
 
 }
 
@@ -772,7 +778,7 @@ boolean getUBX_ACK(uint8_t *MSG) {
  uint8_t b;
  uint8_t ackByteID = 0;
  uint8_t ackPacket[10];
- unsigned long startTime = millis();
+ unsigned long startTime = realMillis();
  
 // Construct the expected ACK packet
  ackPacket[0] = 0xB5; // header
@@ -801,7 +807,7 @@ while (1) {
  }
  
 // Timeout if no valid response in 3 seconds
- if (millis() - startTime > 3000) {
+ if (realMillis() - startTime > 3000) {
  return false;
  }
  
