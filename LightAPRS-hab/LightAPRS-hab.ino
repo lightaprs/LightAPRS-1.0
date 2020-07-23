@@ -220,7 +220,6 @@ void loop() {
     }
 
     if(secsTillTx <= 0) {
-      Serial.println("last_tx_millis and Time since last tx: " +  String(last_tx_millis) + " " + String(realMillis()-last_tx_millis)); // TODO: REMOVE
       last_tx_millis = realMillis();
       secsTillTx = GPSWait;
 
@@ -261,7 +260,7 @@ void loop() {
         } // if time to tx
       } else {
 #if defined(DEVMODE)
-      Serial.println(F("Not enough satellites"));
+      Serial.println(F("Could not acquire GPS lock"));
 #endif
       if((gps.time.minute() % 15) == 0) {               
         sendStatus();       
@@ -275,8 +274,6 @@ void loop() {
       secsTillTx = BattWait;
       secsTillTx -= round((realMillis()-loop_start)/1000);
   }
-  // Serial.println("Loop time in milliseconds->");
-  // Serial.println(round((millis()-loop_start)/1000));
   if (secsTillPing <= secsTillTx) {
     sleepSecs = secsTillPing;
     secsTillTx -= secsTillPing;
@@ -286,10 +283,7 @@ void loop() {
     secsTillPing -= secsTillTx;
     secsTillTx = 0;
   }
-  Serial.println("sleepSecs: " + String(sleepSecs));
-  Serial.println("B4 SLP: "+String(realMillis()));
   sleepSeconds(sleepSecs);
-  Serial.println("AFDUR SLP: "+String(realMillis())); 
   
 }
 
