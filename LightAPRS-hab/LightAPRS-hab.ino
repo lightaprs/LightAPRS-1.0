@@ -29,7 +29,7 @@
 #define AprsPinInput  pinMode(12,INPUT);pinMode(13,INPUT);pinMode(14,INPUT);pinMode(15,INPUT)
 #define AprsPinOutput pinMode(12,OUTPUT);pinMode(13,OUTPUT);pinMode(14,OUTPUT);pinMode(15,OUTPUT)
 
-// #define DEVMODE // Development mode. Uncomment to enable for debugging.
+#define DEVMODE // Development mode. Uncomment to enable for debugging.
 
 
 // begin prototypes
@@ -117,7 +117,7 @@ float DraHighVolt=8.0;    // min Volts for radio module (DRA818V) to transmit (T
 int secsTillTx = BeaconWait; // Countdown
 int secsTillPing = GPSPingWait;
 float last_tx_millis = 0;
-
+long realMillis = 0;
 boolean aliveStatus = true; //for tx status message on first wake-up just once.
 
 //do not change WIDE path settings below if you don't know what you are doing :) 
@@ -209,14 +209,17 @@ void loop() {
 
     if(secsTillPing <= 0) {
       current_altitude = gps.altitude.feet();
+      Serial.println("Pinging");
       if(current_altitude > max_altitude) {
         max_altitude = current_altitude;
       }
+      updateZone();
       secsTillPing = GPSPingWait;
+      
     }
 
     if(secsTillTx <= 0) {
-
+      Serial.println("last_tx_millis and Time since last tx: " +  String(last_tx_millis) + " " + String(millis()-last_tx_millis)); // TODO: REMOVE
       last_tx_millis = millis();
       secsTillTx = GPSWait;
 
@@ -282,7 +285,12 @@ void loop() {
     secsTillPing -= secsTillTx;
     secsTillTx = 0;
   }
+  Serial.println("sleepSecs: " + String(sleepSecs));
+  Serial.println("B4 SLP: "+String(millis()));
   sleepSeconds(sleepSecs);
+  Serial.println("AFDUR SLP: "+String(millis()));
+  realMillis += loop_start - millis() +  
+  
 }
 
 
@@ -540,7 +548,7 @@ void sendLocation() {
 #if defined(DEVMODE)
   Serial.println(F("Location sent with comment"));
 #endif
-
+  
   TxCount++;
 }
 
