@@ -71,7 +71,8 @@ char StatusMessage[50] = "Status Msg: ";
 Adafruit_Si7021 i2c_tracker = Adafruit_Si7021();
 
 long current_altitude = 0;
-long max_altitude = 0;
+unsigned long max_altitude = (unsigned long) 0;
+
 
 long lastalt = 0; // last updated altitude
 bool balloonPopped = false; // DO NOT CHANGE
