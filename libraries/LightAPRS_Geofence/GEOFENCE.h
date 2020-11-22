@@ -115,7 +115,7 @@ static float RomaniaF[] = {
 };
 
 static float North_KoreaF[] = {
-	130.14189, 4321627,
+	130.14189, 43.21627,
 	124.03574, 39.8949,
 	125.18292, 37.39202,
 	128.47240, 38.66888,
@@ -182,4 +182,4 @@ void GEOFENCE_position(float latitude, float longitude);
 
 
 
-#endif 
+#endif
