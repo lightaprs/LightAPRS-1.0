@@ -43,7 +43,7 @@ To programme LightAPRS Tracker, all you need is a micro usb (B type) cable, a fe
 
 ### 1.Install CH340G Driver
 
-The CH340 chip is used by a number of Arduino compatible boards (and by LightAPRS) to provide USB connectivity, you may need to install a driver. (If you have installed it before for a clone Android board, you don't have to install it again.)
+The CH340 chip is used by a number of Arduino compatible boards (and by LightAPRS) to provide USB connectivity, you may need to install a driver. (If you have installed it before for a clone Arduino board, you don't have to install it again.)
 
 Don't worry, it's really easy. Just download the following driver from sparkfun.com and install it.
 
