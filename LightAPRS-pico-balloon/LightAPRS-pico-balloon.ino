@@ -166,10 +166,6 @@ void loop() {
       GpsOFF;
       ublox_high_alt_mode_enabled = false; //gps sleep mode resets high altitude mode.
       GpsFirstFix=true;
-      //APRS frequency isn't the same for the whole world. (for pico balloon only)
-      if (!radioSetup) {
-        configureFreqbyLocation();
-      }
 
       if(autoPathSizeHighAlt && gps.altitude.feet()>3000){
             //force to use high altitude settings (WIDE2-n)
@@ -178,6 +174,11 @@ void loop() {
             //use default settings  
             APRS_setPathSize(pathSize);
         }
+          
+      //APRS frequency isn't the same for the whole world. (for pico balloon only)
+      if (!radioSetup) {
+        configureFreqbyLocation();
+      }          
       
       //send status message every 60 minutes
       if(gps.time.minute() == 0){               
