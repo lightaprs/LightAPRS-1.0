@@ -280,7 +280,7 @@ void configureFreqbyLocation() {
 
     GEOFENCE_position(tempLat,tempLong);  
     float dividedFreq = GEOFENCE_APRS_frequency / 1000000.f;
-    char aprsFreq_buff[8];
+    char aprsFreq_buff[9];
     dtostrf(dividedFreq, 8, 4, aprsFreq_buff);
     configDra818(aprsFreq_buff);    
     
