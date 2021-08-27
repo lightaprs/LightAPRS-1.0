@@ -384,7 +384,7 @@ void updatePosition() {
 void updateTelemetry() {
  
   sprintf(telemetry_buff, "%03d", gps.course.isValid() ? (int)gps.course.deg() : 0);
-  telemetry_buff[3] += '/';
+  telemetry_buff[3] = '/';
   sprintf(telemetry_buff + 4, "%03d", gps.speed.isValid() ? (int)gps.speed.knots() : 0);
   telemetry_buff[7] = '/';
   telemetry_buff[8] = 'A';
