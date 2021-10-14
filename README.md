@@ -1,10 +1,10 @@
 # LightAPRS Tracker
 
-LightAPRS is one of the most affordable, smallest, lightest, powerful and open source APRS trackers available. It makes tracking pico balloons, weather balloons, model rockets, RC aircraft, and anything else that flies simple and easy. 
-It is able to report location, altitude, temperature and pressure to the internet ([APRS-IS](http://status.aprs2.net)) or direct to an amateur radio once a minute with a solar panel/super capacitors or just 4xAAA batteries. 
+LightAPRS is one of the most affordable, smallest, lightest, powerful and open source APRS trackers available. It makes tracking pico balloons, weather balloons, model rockets, RC aircraft, and anything else that flies simple and easy.
+It is able to report location, altitude, temperature and pressure to the internet ([APRS-IS](http://status.aprs2.net)) or direct to an amateur radio once a minute with a solar panel/supercapacitors or just 4xAAA batteries.
 Because LightAPRS is open source you can add your own custom sensors via I2C/SPI pins.
 
-LightAPRS is available on http://shop.qrp-labs.com/index.php?route=product/product&path=76&product_id=126 for order. If you need an APRS+WSPR tracker than checkout our new module [LightAPRS-W](https://github.com/lightaprs/LightAPRS-W-1.0)
+LightAPRS is available on http://shop.qrp-labs.com/aprs/lightaprs for order. If you need an APRS+WSPR tracker than checkout our new module [LightAPRS-W](https://github.com/lightaprs/LightAPRS-W-1.0) or LoRa/LoRaWAN tracker [LightTracker](https://github.com/lightaprs/LightTracker-1.0).
 
 <img src="images/lightaprs-pinout.jpg" width="600">
 
@@ -78,26 +78,26 @@ Download and install [Arduino IDE](https://www.arduino.cc/en/Main/Software). If 
 - BOD: 2.7v
 - Pinout: Standard
 - Variant: 1284P
-- Compiler LTO : Disabled 
+- Compiler LTO : Disabled
 <img src="images/lightaprs-mightycore-settings.png" width="300">
 
-### 5.Copy Libraries & Compile Source Code 
+### 5.Copy Libraries & Compile Source Code
 
 You are almost ready to programme LightAPRS Tracker :)
 
-- First download the repository to your computer using green "[clone or download](https://github.com/lightaprs/LightAPRS-1.0/archive/master.zip)" button.
-- There are more then one Arduino projects optimized for different use cases. For example if you are planning to use LightAPRS tracker for a pico balloon project, then use "[LightAPRS-pico-balloon](LightAPRS-pico-balloon)" folder, for a hab (high altitude balloon)/weather balloon project, then use "[LightAPRS-hab](LightAPRS-hab)" folder.
+- First download the repository to your computer using the green "[clone or download](https://github.com/lightaprs/LightAPRS-1.0/archive/master.zip)" button.
+- There are more than one Arduino projects optimized for different use cases. For example if you are planning to use LightAPRS tracker for a pico balloon project, then use "[LightAPRS-pico-balloon](LightAPRS-pico-balloon)" folder, for a hab (high altitude balloon)/weather balloon project, then use "[LightAPRS-hab](LightAPRS-hab)" folder.
 - You will notice some folders in the "libraries" folder. You have to copy these folders (libraries) into your Arduino libraries folder on your computer. Path to your Arduino libraries:
 - **Windows** : This PC\Documents\Arduino\libraries\
 - **Mac** : /Users/\<username\>/Documents/Arduino/libraries/ <img src="images/lightaprs-library-copy.png" width="600">  
 - Then open the *.ino file with Arduino IDE and change your settings (Callsign, SSID, comment, etc.)
-- Click **Verify** 
+- Click **Verify**
 
 ### 6.Upload
 
-- First attach an antenna (at least 50cm monopole wire) to your tracker. Radio module may be damaged if operated without attaching an antenna, since power has nowhere to go. 
-- Connect LightAPRS Tracker to your computer with micro USB cable. 
-- If you have succesfully installed CH340G driver explained in the first step, you should see a COM port under **Tools->Port** menu item. Select that port. 
+- First attach an antenna (at least 50cm monopole wire) to your tracker. Radio module may be damaged if operated without attaching an antenna, since power has nowhere to go.
+- Connect LightAPRS Tracker to your computer with a micro USB cable.
+- If you have successfully installed the CH340G driver explained in the first step, you should see a COM port under **Tools->Port** menu item. Select that port.
 
 <img src="images/lightaprs-arduino-port-select.png" width="600">  
 
@@ -106,7 +106,7 @@ You are almost ready to programme LightAPRS Tracker :)
  
 ## Support
 
-If you have any questions or need supoort, please contact support@lightaprs.com
+If you have any questions or need support, please contact support@lightaprs.com
 
 ## FAQ
 
@@ -122,11 +122,11 @@ A. No you don't. Since pico balloons are very small and light, you are FAA 101 e
 
 **Q. What kind of antenna do i need to use on LightAPRS?**
 
-A. You can use any type. For airborne projects (such as balloons, rockets, rc planes, drones, etc.) we suggest quarter wave monopole antenna becuase this makes your payload lighter. So just cut a light 50 cm. wire and solder it to the middle pad of antenna footprint (A1). Since your payload is airborne and wavelength is 2 meters, you don't need a wire for ground.
+A. You can use any type. For airborne projects (such as balloons, rockets, rc planes, drones, etc.) we suggest quarter wave monopole antenna because this makes your payload lighter. So just cut a light 50 cm. wire and solder it to the middle pad of the antenna footprint (A1). Since your payload is airborne and wavelength is 2 meters, you don't need a wire for ground.
 
 <img src="images/lightaprs-monopole-wire-antenna-connection.jpg" width="600">
 
-**Q. But I want to use rubber duck antenna. Is it possible?**
+**Q. But I want to use a rubber duck antenna. Is it possible?**
 
 A. Yes. But you need a pcb type SMA connector (male or female) as follows:
 
