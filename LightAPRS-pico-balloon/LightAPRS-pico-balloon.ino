@@ -71,7 +71,7 @@ boolean beaconViaARISS = false; //there are no iGates in some regions (such as N
 // GEOFENCE 
 uint32_t GEOFENCE_APRS_frequency      = 144800000; //default frequency before geofencing. This variable will be updated based on GPS location.
 uint32_t GEOFENCE_no_tx               = 0; 
-
+boolean arissModEnabled = false; //do not change this, temp value. 
 
 boolean radioSetup = false;
 boolean GpsFirstFix=false;
@@ -167,7 +167,7 @@ void loop() {
       ublox_high_alt_mode_enabled = false; //gps sleep mode resets high altitude mode.
       GpsFirstFix=true;
 
-      if(autoPathSizeHighAlt && gps.altitude.feet()>3000){
+      if(!arissModEnabled && autoPathSizeHighAlt && gps.altitude.feet()>3000){
             //force to use high altitude settings (WIDE2-n)
             APRS_setPathSize(1);
         } else {
@@ -275,7 +275,8 @@ void configureFreqbyLocation() {
     APRS_setPath1("ARISS", Wide1);
     APRS_setPath2("WIDE2", Wide2);
     APRS_setPathSize(2);
-    configDra818("145.8250");  
+    configDra818("145.8250");
+    arissModEnabled = true;
   } else {
 
     GEOFENCE_position(tempLat,tempLong);  
@@ -283,7 +284,7 @@ void configureFreqbyLocation() {
     char aprsFreq_buff[9];
     dtostrf(dividedFreq, 8, 4, aprsFreq_buff);
     configDra818(aprsFreq_buff);    
-    
+    arissModEnabled = false;
   }
   
   radioSetup = true;
