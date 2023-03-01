@@ -5,6 +5,7 @@
 #include <Wire.h>
 #include <Adafruit_BMP085.h>//https://github.com/adafruit/Adafruit-BMP085-Library
 #include <avr/wdt.h>
+#include "aprs-config.h"
 
 #define RfPDPin     19
 #define GpsVccPin   18
@@ -31,12 +32,12 @@
 //#define DEVMODE // Development mode. Uncomment to enable for debugging.
 
 //****************************************************************************
-char  CallSign[7]="NOCALL"; //DO NOT FORGET TO CHANGE YOUR CALLSIGN
-int   CallNumber=11; //SSID http://www.aprs.org/aprs11/SSIDs.txt
-char  Symbol='O'; // '/O' for balloon, '/>' for car, for more info : http://www.aprs.org/symbols/symbols-new.txt
-bool alternateSymbolTable = false ; //false = '/' , true = '\'
+char  CallSign[7]=CALLSIGN; //DO NOT FORGET TO CHANGE YOUR CALLSIGN
+int   CallNumber=CALLNUMBER; 
+char  Symbol=SYMBOL; 
+bool alternateSymbolTable = ALT_SYMBOL; 
 
-char Frequency[9]="144.3900"; //default frequency. 144.3900 for US, 144.8000 for Europe
+char Frequency[9]=FREQUENCY; 
 
 char comment[50] = "http://www.lightaprs.com"; // Max 50 char
 char StatusMessage[50] = "LightAPRS by TA9OHC & TA2MUN"; 

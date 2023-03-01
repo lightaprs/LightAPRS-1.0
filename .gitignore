@@ -1,3 +1,6 @@
 ### macOS ###
 # General
 .DS_Store
+
+### Config files ###
+*/aprs-config.h
