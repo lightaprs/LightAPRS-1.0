@@ -3,4 +3,4 @@
 .DS_Store
 
 ### Config files ###
-*/aprs-config.h
+LightAPRS-hab/aprs-config.h
