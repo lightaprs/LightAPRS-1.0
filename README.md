@@ -96,10 +96,15 @@ You are almost ready to programme LightAPRS Tracker :)
 - You will notice some folders in the "libraries" folder. You have to copy these folders (libraries) into your Arduino libraries folder on your computer. Path to your Arduino libraries:
 - **Windows** : This PC\Documents\Arduino\libraries\
 - **Mac** : /Users/\<username\>/Documents/Arduino/libraries/ <img src="images/lightaprs-library-copy.png" width="600">  
-- Then open the *.ino file with Arduino IDE and change your settings (Callsign, SSID, comment, etc.)
-- Click **Verify**
 
-### 6.Upload
+### 6.Config
+
+- Open your local copy of the project
+- Make a copy of the "example-aprs-config.h" file and name it "aprs-config.h"
+- Open the file and adjust the necessary settings
+- **Don't forget to update your callsign**
+
+### 7.Upload
 
 - First attach an antenna (at least 50cm monopole wire) to your tracker. Radio module may be damaged if operated without attaching an antenna, since power has nowhere to go.
 - Connect LightAPRS Tracker to your computer with a micro USB cable.
