@@ -4,7 +4,9 @@ LightAPRS is one of the most affordable, smallest, lightest, powerful and open s
 It is able to report location, altitude, temperature and pressure to the internet ([APRS-IS](http://status.aprs2.net)) or direct to an amateur radio once a minute with a solar panel/supercapacitors or just 4xAAA batteries.
 Because LightAPRS is open source you can add your own custom sensors via I2C/SPI pins.
 
-LightAPRS is available on http://shop.qrp-labs.com/aprs/lightaprs for order. If you need an APRS+WSPR tracker than checkout:
+LightAPRS is available on http://shop.qrp-labs.com/aprs/lightaprs for order. If you need an APRS+WSPR or LoRa APRS (433MHz) tracker than checkout:
+
+**LightTracker (LoRa APRS) Plus 1.0:** https://github.com/lightaprs/LightTracker-Plus-1.0/
 
 **LightAPRS-W 1.0:** https://github.com/lightaprs/LightAPRS-W-1.0
 
