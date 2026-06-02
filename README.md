@@ -6,7 +6,9 @@ Because LightAPRS is open source you can add your own custom sensors via I2C/SPI
 
 LightAPRS is available on http://shop.qrp-labs.com/aprs/lightaprs for order. If you need an APRS+WSPR or LoRa APRS (433MHz) tracker than checkout:
 
-**LightTracker (LoRa APRS) Plus 1.0:** https://github.com/lightaprs/LightTracker-Plus-1.0/ (New)
+**LightAPRS Gateway (AFSK) Plus 1.0:** https://github.com/lightaprs/LightAPRSGateway-1.0/ (new)
+
+**LightTracker (LoRa APRS) Plus 1.0:** https://github.com/lightaprs/LightTracker-Plus-1.0/
 
 **LightAPRS-W 1.0:** https://github.com/lightaprs/LightAPRS-W-1.0
 
